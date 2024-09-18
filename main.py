@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Optional
 
 import cv2
@@ -146,10 +147,10 @@ def debug_draw_aruco_markers(corners, ids, image):
 
 if __name__ == "__main__":
     # main('exam_video.mp4')
-    image_path = "test/resources/VID_20240918_131737-2.png"
+    image_path = "test/resources/VID_20240918_131737-1.png"
     student_number = student_number_from_qr_code(image_path)
     de_skew_and_crop_image(image_path, "/tmp/grades.png")
     eg = ExerciseGrades("/tmp/grades.png", ACHIEVABLE_POINTS, student_number)
-    # TODO FIXME das proof of concept muss dann auch mit ner verwackelten video-aufnahme klappen, dann aufräumen/selbst trainieren
+    eg.write_training_images(Path("corpus"))
     print(eg)
 

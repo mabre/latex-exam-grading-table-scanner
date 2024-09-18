@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import List
 
 import cv2
@@ -142,3 +143,13 @@ class ExerciseGrades:
 
     def __repr__(self) -> str:
         return str(self.student_number) + "," + ",".join([str(grade) for grade in self.grades()])
+
+    def write_training_images(self, directory: Path) -> None:
+        for idx, exercise_grade in enumerate([self.sum] + self.exercise_grades):
+            for cell_idx, cell in enumerate(exercise_grade.cells):
+                image = cell.primary_image
+                if exercise_grade.use_secondary():
+                    image = cell.secondary_image
+                if not Cell.is_empty(image):
+                    cv2.imwrite(directory / f"{self.student_number}_{idx}_{cell_idx}.png", image)
+
