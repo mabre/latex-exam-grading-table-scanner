@@ -3,8 +3,9 @@ from typing import List
 
 import cv2
 import numpy as np
-from shapely import is_empty
 from tensorflow.keras.models import load_model
+
+EMPTY_THRESHOLD = 215
 
 PADDING_CELLS_LEFT = 1 # space (= number of cell widths) between upper right corner of ID 0 and start of grading table cells
 PADDING_CELLS_RIGHT = 1
@@ -32,8 +33,8 @@ class Cell:
     def __init__(self, allowed_values: List[int], image: np.array):
         self.allowed_values = allowed_values
         half_height = image.shape[0] // 2
-        self.primary_image = Cell.preprocess_image(image[:half_height, :])
-        self.secondary_image = Cell.preprocess_image(image[half_height:, :])
+        self.primary_image = Cell.preprocess_image(image[:int(half_height * (1 + CELL_CROP_PADDING)), :])
+        self.secondary_image = Cell.preprocess_image(image[int(half_height * (1 - CELL_CROP_PADDING)):, :])
 
     @staticmethod
     def preprocess_image(image: np.array) -> np.array:
@@ -54,7 +55,7 @@ class Cell:
         # note that the input image should already be contrast-normalized
         center = Cell.image_center(image)
         # debug_display_image(center)
-        return np.mean(center) > 200
+        return np.mean(center) > EMPTY_THRESHOLD
 
     def secondary_is_empty(self) -> bool:
         return self.is_empty(self.secondary_image)
