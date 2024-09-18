@@ -3,6 +3,7 @@ from typing import List
 
 import cv2
 import numpy as np
+from shapely import is_empty
 from tensorflow.keras.models import load_model
 
 PADDING_CELLS_LEFT = 1 # space (= number of cell widths) between upper right corner of ID 0 and start of grading table cells
@@ -50,8 +51,7 @@ class Cell:
 
     @staticmethod
     def is_empty(image: np.array) -> bool:
-        # TODO test! Das muss etwas sinnvoller sein, automatischer kontrast oder so
-        # image is a b/w image, 28x28; check whether the center pixels are all (nearly) white
+        # note that the input image should already be contrast-normalized
         center = Cell.image_center(image)
         # debug_display_image(center)
         return np.mean(center) > 200
@@ -64,15 +64,16 @@ class Cell:
         return image[DIGIT_IMAGE_SIZE // 4:DIGIT_IMAGE_SIZE * 3 // 4, DIGIT_IMAGE_SIZE // 4:DIGIT_IMAGE_SIZE * 3 // 4]
 
     def detect_number(self, use_secondary: bool) -> int:
-        # Normalize the image
         image = self.secondary_image if use_secondary else self.primary_image
+
+        if Cell.is_empty(image) and 0 in self.allowed_values:
+            return 0
 
         normalized = image / 255.0
 
         # Reshape the image to match the model's input shape
         input_image = normalized.reshape(1, DIGIT_IMAGE_SIZE, DIGIT_IMAGE_SIZE, 1)
 
-        # Predict the digit
         predictions = Cell.model.predict(input_image)[0]
         allowed_predictions = {value: predictions[value] for value in self.allowed_values}
         detected_number = max(allowed_predictions, key=allowed_predictions.get)
