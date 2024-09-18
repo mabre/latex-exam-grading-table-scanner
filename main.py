@@ -11,7 +11,7 @@ from ExerciseGrades import ExerciseGrades, debug_display_image
 
 ACHIEVABLE_POINTS = [9, 7, 2, 2, 3, 3]
 
-SKIP_N_FRAMES = 10 # for speed
+SKIP_N_FRAMES = 5 # for speed
 
 qreader = QReader()
 
@@ -28,7 +28,7 @@ def extract_frames(video_path: str) -> Dict[int, np.array]:
             break
         if frame_number % SKIP_N_FRAMES == 0:
             student_number = student_number_from_qr_code(frame)
-            if student_number is not None and has_two_aruco_markers(frame):
+            if student_number is not None and has_all_aruco_markers(frame):
                 if previous_student_number != student_number and previous_student_number is not None:
                     relevant_frames[previous_student_number] = new_frames[len(new_frames) // 2]
                     new_frames = []
@@ -49,7 +49,7 @@ def student_number_from_qr_code(image: np.array) -> Optional[int]:
     decoded_test = qreader.detect_and_decode(image)
 
     # Check if any QR codes were detected
-    if len(decoded_test) > 0 and decoded_test[0] is not None and decoded_test[0].isnumeric():
+    if len(decoded_test) == 1 and decoded_test[0] is not None and decoded_test[0].isnumeric():
         print(f"QR Code Data: {decoded_test}")
         return int(decoded_test[0])
     else:
@@ -57,9 +57,9 @@ def student_number_from_qr_code(image: np.array) -> Optional[int]:
         return None
 
 
-def has_two_aruco_markers(image: np.array) -> bool:
+def has_all_aruco_markers(image: np.array) -> bool:
     corners, ids = detect_aruco_markers(image)
-    return len(corners) == 2
+    return len(corners) == 3
 
 
 def detect_aruco_markers(image: np.array):
@@ -72,11 +72,10 @@ def detect_aruco_markers(image: np.array):
     return corners, ids
 
 
-def calculate_rotation_angle(corners: np.array) -> float:
-    delta_y = corners[1][1] - corners[0][1]
-    delta_x = corners[1][0] - corners[0][0]
-    angle = np.degrees(np.arctan2(delta_y, delta_x))
-    return angle
+def calculate_rotation_angle(marker_position_1: np.array, marker_position_2: np.array) -> float:
+    delta_x = marker_position_1[0][0] - marker_position_2[0][0]
+    delta_y = marker_position_1[0][1] - marker_position_2[0][1]
+    return np.degrees(np.arctan2(delta_y, delta_x))
 
 def rotate_image(image: np.array, angle: float) -> np.array:
     (h, w) = image.shape[:2]
@@ -135,16 +134,14 @@ def de_skew_and_crop_image(image: np.array, output_path: str):
 def rotate_image_by_aruco(image: np.array):
     corners, ids = detect_aruco_markers(image)
 
-    if len(corners) != 2:
+    if len(corners) != 3:
         print(f"Not enough ArUco markers detected to de-skew and crop the image: {len(corners)}")
         return
 
     # Extract the corners of the markers with IDs 0 and 1
     id_0_index = np.where(ids == 0)[0][0]  # ID 0 = marker at the lower left of the table
-    id_1_index = np.where(ids == 1)[0][0]  # ID 1 = marker at the upper right of the table
-    angle = np.mean(
-        [calculate_rotation_angle(corners[id_0_index][0]),
-         calculate_rotation_angle(corners[id_1_index][0])])
+    id_2_index = np.where(ids == 2)[0][0]  # ID 2 = marker at the lower right of the table
+    angle = calculate_rotation_angle(corners[id_0_index][0], corners[id_2_index][0])
     rotated_image = rotate_image(image, angle)
     print(f"Rotated image by {angle} degrees")
     return rotated_image
@@ -168,4 +165,4 @@ def grades_from_video(video_path: str):
 
 if __name__ == "__main__":
     # TODO logger
-    grades_from_video("test/resources/VID_20240918_131737.mp4")
+    grades_from_video("test/resources/VID_20240918_170200.mp4")
