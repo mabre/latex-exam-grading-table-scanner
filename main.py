@@ -3,8 +3,7 @@ import cv2.aruco as aruco
 
 import numpy as np
 
-from ExerciseGrades import ExerciseGrades
-
+from ExerciseGrades import ExerciseGrades, debug_display_image
 
 ACHIEVABLE_POINTS = [9, 8, 2, 2, 2, 4]
 
@@ -40,8 +39,7 @@ def detect_qr_codes(image_path: str):
         print("No QR codes found")
 
 
-def detect_aruco_markers(image_path: str):
-    image = cv2.imread(image_path)
+def detect_aruco_markers(image: np.array):
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     # note: use https://chev.me/arucogen/ to generate markers
     aruco_dict = aruco.getPredefinedDictionary(aruco.DICT_4X4_50)
@@ -49,11 +47,28 @@ def detect_aruco_markers(image_path: str):
     corners, ids, _ = aruco_detector.detectMarkers(gray)
     # debug_draw_aruco_markers(corners, ids, image)
 
-    return corners, ids, image
+    return corners, ids
 
+
+def calculate_rotation_angle(corners: np.array) -> float:
+    delta_y = corners[1][1] - corners[0][1]
+    delta_x = corners[1][0] - corners[0][0]
+    angle = np.degrees(np.arctan2(delta_y, delta_x))
+    return angle
+
+def rotate_image(image: np.array, angle: float) -> np.array:
+    (h, w) = image.shape[:2]
+    center = (w // 2, h // 2)
+    M = cv2.getRotationMatrix2D(center, angle, 1.0)
+    rotated = cv2.warpAffine(image, M, (w, h))
+    return rotated
 
 def de_skew_and_crop_image(image_path: str, output_path: str):
-    corners, ids, image = detect_aruco_markers(image_path)
+    image = cv2.imread(image_path)
+
+    rotated_image = rotate_image_by_aruco(image)
+
+    corners, ids = detect_aruco_markers(rotated_image)
 
     if ids is not None and len(ids) >= 2:
         # Extract the corners of the markers with IDs 0 and 1
@@ -86,13 +101,31 @@ def de_skew_and_crop_image(image_path: str, output_path: str):
         M = cv2.getPerspectiveTransform(src_points, dst_points)
 
         # Apply the perspective transform to de-skew and crop the image
-        de_skewed_image = cv2.warpPerspective(image, M, (int(width), int(height)))
+        de_skewed_image = cv2.warpPerspective(rotated_image, M, (int(width), int(height)))
 
-        # Save or display the de-skewed and cropped image
         cv2.imwrite(output_path, de_skewed_image)
         print(f"De-skewed and cropped image saved to {output_path}")
+
     else:
         print("Not enough ArUco markers detected to de-skew and crop the image")
+
+
+def rotate_image_by_aruco(image: np.array):
+    corners, ids = detect_aruco_markers(image)
+
+    if len(corners) != 2:
+        print(f"Not enough ArUco markers detected to de-skew and crop the image: {len(corners)}")
+        return
+
+    # Extract the corners of the markers with IDs 0 and 1
+    id_0_index = np.where(ids == 0)[0][0]  # ID 0 = marker at the lower left of the table
+    id_1_index = np.where(ids == 1)[0][0]  # ID 1 = marker at the upper right of the table
+    angle = np.mean(
+        [calculate_rotation_angle(corners[id_0_index][0]),
+         calculate_rotation_angle(corners[id_1_index][0])])
+    rotated_image = rotate_image(image, angle)
+    print(f"Rotated image by {angle} degrees")
+    return rotated_image
 
 
 def debug_draw_aruco_markers(corners, ids, image):
@@ -100,10 +133,6 @@ def debug_draw_aruco_markers(corners, ids, image):
     cv2.imshow("Detected ArUco Markers", detected_image)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
-
-
-
-
 
 
 # def main(video_path):
@@ -116,9 +145,8 @@ def debug_draw_aruco_markers(corners, ids, image):
 
 if __name__ == "__main__":
     # main('exam_video.mp4')
-    # de_skew_and_crop_image("/home/markus/Dokument/git/lehre/klausurscanner/test/resources/screenshot.png",
-    #                        "/home/markus/Dokument/git/lehre/klausurscanner/test/resources/screenshot-table.png")
-    eg = ExerciseGrades("/home/markus/Dokument/git/lehre/klausurscanner/test/resources/screenshot-table-test.png", ACHIEVABLE_POINTS)
+    de_skew_and_crop_image("test/resources/VID_20240918_131737-1.png", "/tmp/grades.png")
+    eg = ExerciseGrades("/tmp/grades.png", ACHIEVABLE_POINTS)
     grades = eg.grades()
     # TODO FIXME das proof of concept muss dann auch mit ner verwackelten video-aufnahme klappen, dann aufräumen/selbst trainieren
     print(grades)
