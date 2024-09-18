@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Dict
 
 import cv2
 import cv2.aruco as aruco
@@ -11,32 +11,55 @@ from ExerciseGrades import ExerciseGrades, debug_display_image
 
 ACHIEVABLE_POINTS = [9, 7, 2, 2, 3, 3]
 
+SKIP_N_FRAMES = 10 # for speed
+
 qreader = QReader()
 
-def extract_frames(video_path):
-    # TODO untested
+
+def extract_frames(video_path: str) -> Dict[int, np.array]:
     cap = cv2.VideoCapture(video_path)
-    frames = []
+    relevant_frames = {}
+    frame_number = 0
+    previous_student_number = None
+    new_frames = [] # when finding multiple frames with the same student number, we take the frame in the middle (b/c other frames might contain fingers etc.)
     while cap.isOpened():
         ret, frame = cap.read()
         if not ret:
             break
-        frames.append(frame)
-    cap.release()
-    return frames
+        if frame_number % SKIP_N_FRAMES == 0:
+            student_number = student_number_from_qr_code(frame)
+            if student_number is not None and has_two_aruco_markers(frame):
+                if previous_student_number != student_number and previous_student_number is not None:
+                    relevant_frames[previous_student_number] = new_frames[len(new_frames) // 2]
+                    new_frames = []
+                previous_student_number = student_number
+                new_frames.append(frame)
+        frame_number += 1
 
-def student_number_from_qr_code(image_path: str) -> Optional[int]:
-    image = cv2.cvtColor(cv2.imread(image_path), cv2.COLOR_BGR2RGB)
+    if len(new_frames) > 0 and previous_student_number is not None and previous_student_number not in relevant_frames:
+        relevant_frames[previous_student_number] = new_frames[len(new_frames) // 2]
+
+    cap.release()
+    return relevant_frames
+
+
+def student_number_from_qr_code(image: np.array) -> Optional[int]:
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
     decoded_test = qreader.detect_and_decode(image)
 
     # Check if any QR codes were detected
-    if len(decoded_test) > 0:
+    if len(decoded_test) > 0 and decoded_test[0] is not None and decoded_test[0].isnumeric():
         print(f"QR Code Data: {decoded_test}")
         return int(decoded_test[0])
     else:
         print("No QR codes found")
         return None
+
+
+def has_two_aruco_markers(image: np.array) -> bool:
+    corners, ids = detect_aruco_markers(image)
+    return len(corners) == 2
 
 
 def detect_aruco_markers(image: np.array):
@@ -46,7 +69,6 @@ def detect_aruco_markers(image: np.array):
     aruco_detector = aruco.ArucoDetector(aruco_dict)
     corners, ids, _ = aruco_detector.detectMarkers(gray)
     # debug_draw_aruco_markers(corners, ids, image)
-
     return corners, ids
 
 
@@ -63,9 +85,7 @@ def rotate_image(image: np.array, angle: float) -> np.array:
     rotated = cv2.warpAffine(image, M, (w, h))
     return rotated
 
-def de_skew_and_crop_image(image_path: str, output_path: str):
-    image = cv2.imread(image_path)
-
+def de_skew_and_crop_image(image: np.array, output_path: str):
     rotated_image = rotate_image_by_aruco(image)
 
     corners, ids = detect_aruco_markers(rotated_image)
@@ -137,20 +157,15 @@ def debug_draw_aruco_markers(corners, ids, image):
     cv2.destroyAllWindows()
 
 
-# def main(video_path):
-#     frames = extract_frames(video_path)
-#     cover_sheets = identify_cover_sheets(frames)
-#     results = compile_results(cover_sheets)
-#     # Save results to a file
-#     with open('results.json', 'w') as f:
-#         json.dump(results, f)
+def grades_from_video(video_path: str):
+    frames = extract_frames(video_path)
+    for student_number, image in frames.items():
+        # debug_display_image(image)
+        de_skew_and_crop_image(image, "/tmp/grades.png")
+        eg = ExerciseGrades("/tmp/grades.png", ACHIEVABLE_POINTS, student_number)
+        eg.write_training_images(Path("corpus"))
+        print(eg)
 
 if __name__ == "__main__":
-    # main('exam_video.mp4')
-    image_path = "test/resources/VID_20240918_131737-1.png"
-    student_number = student_number_from_qr_code(image_path)
-    de_skew_and_crop_image(image_path, "/tmp/grades.png")
-    eg = ExerciseGrades("/tmp/grades.png", ACHIEVABLE_POINTS, student_number)
-    eg.write_training_images(Path("corpus"))
-    print(eg)
-
+    # TODO logger
+    grades_from_video("test/resources/VID_20240918_131737.mp4")
