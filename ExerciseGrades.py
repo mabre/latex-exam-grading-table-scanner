@@ -26,6 +26,8 @@ def debug_display_image(image: np.array):
     cv2.destroyAllWindows()
 
 class Cell:
+    model = load_model('mnist.h5')
+
     def __init__(self, allowed_values: List[int], image: np.array):
         self.allowed_values = allowed_values
         half_height = image.shape[0] // 2
@@ -53,38 +55,29 @@ class Cell:
         center = Cell.image_center(image)
         return np.mean(center) > 240
 
+    def secondary_is_empty(self) -> bool:
+        return self.is_empty(self.secondary_image)
+
     @staticmethod
     def image_center(image: np.array) -> np.array:
         return image[DIGIT_IMAGE_SIZE // 4:DIGIT_IMAGE_SIZE * 3 // 4, DIGIT_IMAGE_SIZE // 4:DIGIT_IMAGE_SIZE * 3 // 4]
 
-    def primary_or_secondary(self) -> np.array:
-        # TODO FIXME: das muss eine Ebene höher entschieden werden!
-        if self.is_empty(self.secondary_image):
-            return self.primary_image
-        return self.secondary_image
-
-    def detect_number(self) -> int:
+    def detect_number(self, use_secondary: bool) -> int:
         # Normalize the image
-        normalized = self.primary_or_secondary() / 255.0
+        image = self.secondary_image if use_secondary else self.primary_image
+
+        normalized = image / 255.0
 
         # Reshape the image to match the model's input shape
         input_image = normalized.reshape(1, DIGIT_IMAGE_SIZE, DIGIT_IMAGE_SIZE, 1)
 
-        # Load the pre-trained MNIST model
-        model = load_model('mnist.h5')
-
         # Predict the digit
-        prediction = model.predict(input_image)
-        detected_number = np.argmax(prediction)
+        predictions = Cell.model.predict(input_image)[0]
+        allowed_predictions = {value: predictions[value] for value in self.allowed_values}
+        detected_number = max(allowed_predictions, key=allowed_predictions.get)
 
-        debug_display_image(self.primary_or_secondary())
         # debug_display_image(input_image)
-
-        if detected_number in self.allowed_values:
-            return detected_number
-        else:
-            return self.allowed_values[0] # TODO more sensible handling, esp. w'keiten/Alternativen; warnung bei Unsicherheit
-
+        return detected_number # TODO Alternativen returnen; bei zu kleiner W'keit warnen
 
 class ExerciseGrade:
     def __init__(self, max_value: float, images: List[np.array]):
@@ -103,11 +96,14 @@ class ExerciseGrade:
             else:
                 raise ValueError("Unexpected number of images")
 
+    def use_secondary(self) -> bool:
+        return any([not cell.secondary_is_empty() for cell in self.cells])
+
     def detect_number(self) -> float:
         number = 0
         for cell in self.cells:
             number *= 10
-            number += cell.detect_number()
+            number += cell.detect_number(self.use_secondary())
 
         return number / 10
 
@@ -137,4 +133,8 @@ class ExerciseGrades:
         self.sum = ExerciseGrade(sum(achievable_points), slices[-number_of_sum_cells(achievable_points):])
 
     def grades(self) -> List[float]:
-        return [exercise_grade.detect_number() for exercise_grade in self.exercise_grades]
+        exercise_grades = [exercise_grade.detect_number() for exercise_grade in self.exercise_grades]
+        detected_sum = self.sum.detect_number()
+        if sum(exercise_grades) != detected_sum:
+            print("TODO: sum not matching")
+        return exercise_grades + [detected_sum]
