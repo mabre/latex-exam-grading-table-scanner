@@ -2,7 +2,6 @@ from typing import List
 
 import cv2
 import numpy as np
-import tensorflow as tf
 from tensorflow.keras.models import load_model
 
 PADDING_CELLS_LEFT = 1 # space (= number of cell widths) between upper right corner of ID 0 and start of grading table cells
@@ -53,7 +52,8 @@ class Cell:
         # TODO test! Das muss etwas sinnvoller sein, automatischer kontrast oder so
         # image is a b/w image, 28x28; check whether the center pixels are all (nearly) white
         center = Cell.image_center(image)
-        return np.mean(center) > 240
+        # debug_display_image(center)
+        return np.mean(center) > 200
 
     def secondary_is_empty(self) -> bool:
         return self.is_empty(self.secondary_image)
@@ -76,7 +76,7 @@ class Cell:
         allowed_predictions = {value: predictions[value] for value in self.allowed_values}
         detected_number = max(allowed_predictions, key=allowed_predictions.get)
 
-        # debug_display_image(input_image)
+        # debug_display_image(image)
         return detected_number # TODO Alternativen returnen; bei zu kleiner W'keit warnen
 
 class ExerciseGrade:

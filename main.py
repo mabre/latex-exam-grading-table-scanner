@@ -103,9 +103,11 @@ def de_skew_and_crop_image(image_path: str, output_path: str):
         # Apply the perspective transform to de-skew and crop the image
         de_skewed_image = cv2.warpPerspective(rotated_image, M, (int(width), int(height)))
 
-        cv2.imwrite(output_path, de_skewed_image)
-        print(f"De-skewed and cropped image saved to {output_path}")
+        gray = cv2.cvtColor(de_skewed_image, cv2.COLOR_BGR2GRAY)
+        binary = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
 
+        cv2.imwrite(output_path, binary)
+        print(f"De-skewed and cropped image saved to {output_path}")
     else:
         print("Not enough ArUco markers detected to de-skew and crop the image")
 
