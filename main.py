@@ -1,12 +1,16 @@
+from typing import Optional
+
 import cv2
 import cv2.aruco as aruco
 
 import numpy as np
+from qreader import QReader
 
 from ExerciseGrades import ExerciseGrades, debug_display_image
 
-ACHIEVABLE_POINTS = [9, 8, 2, 2, 2, 4]
+ACHIEVABLE_POINTS = [9, 7, 2, 2, 3, 3]
 
+qreader = QReader()
 
 def extract_frames(video_path):
     # TODO untested
@@ -20,23 +24,18 @@ def extract_frames(video_path):
     cap.release()
     return frames
 
-def detect_qr_codes(image_path: str):
-    # Load the image
-    image = cv2.imread(image_path)
+def student_number_from_qr_code(image_path: str) -> Optional[int]:
+    image = cv2.cvtColor(cv2.imread(image_path), cv2.COLOR_BGR2RGB)
 
-    # Initialize the QRCodeDetector
-    qr_detector = cv2.QRCodeDetector()
-
-    # Detect and decode the QR codes
-    data, points, _ = qr_detector.detectAndDecode(image)
+    decoded_test = qreader.detect_and_decode(image)
 
     # Check if any QR codes were detected
-    if points is not None:
-        for i in range(len(data)):
-            print(f"QR Code Data: {data[i]}")
-            print(f"Position: {points[i]}")
+    if len(decoded_test) > 0:
+        print(f"QR Code Data: {decoded_test}")
+        return int(decoded_test[0])
     else:
         print("No QR codes found")
+        return None
 
 
 def detect_aruco_markers(image: np.array):
@@ -147,9 +146,10 @@ def debug_draw_aruco_markers(corners, ids, image):
 
 if __name__ == "__main__":
     # main('exam_video.mp4')
-    de_skew_and_crop_image("test/resources/VID_20240918_131737-1.png", "/tmp/grades.png")
-    eg = ExerciseGrades("/tmp/grades.png", ACHIEVABLE_POINTS)
-    grades = eg.grades()
+    image_path = "test/resources/VID_20240918_131737-2.png"
+    student_number = student_number_from_qr_code(image_path)
+    de_skew_and_crop_image(image_path, "/tmp/grades.png")
+    eg = ExerciseGrades("/tmp/grades.png", ACHIEVABLE_POINTS, student_number)
     # TODO FIXME das proof of concept muss dann auch mit ner verwackelten video-aufnahme klappen, dann aufräumen/selbst trainieren
-    print(grades)
+    print(eg)
 

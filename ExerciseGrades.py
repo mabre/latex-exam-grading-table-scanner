@@ -108,7 +108,8 @@ class ExerciseGrade:
         return number / 10
 
 class ExerciseGrades:
-    def __init__(self, image_path: str, achievable_points: List[float]):
+    def __init__(self, image_path: str, achievable_points: List[float], student_number: int):
+        self.student_number = student_number
         self._get_cells(image_path, achievable_points)
 
     def _get_cells(self, image_path: str, achievable_points: List[float]):
@@ -138,3 +139,6 @@ class ExerciseGrades:
         if sum(exercise_grades) != detected_sum:
             print("TODO: sum not matching")
         return exercise_grades + [detected_sum]
+
+    def __repr__(self) -> str:
+        return str(self.student_number) + "," + ",".join([str(grade) for grade in self.grades()])
