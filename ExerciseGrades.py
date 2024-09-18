@@ -9,6 +9,7 @@ PADDING_CELLS_LEFT = 1 # space (= number of cell widths) between upper right cor
 PADDING_CELLS_RIGHT = 1
 
 CELL_CROP_PADDING = 0.1
+DIGIT_IMAGE_SIZE = 28
 
 
 def number_of_cells(achievable_points: List[float]) -> int:
@@ -19,25 +20,55 @@ def number_of_cells(achievable_points: List[float]) -> int:
 def number_of_sum_cells(achievable_points) -> int:
     return len(str(int(sum(achievable_points)))) + 1 # + 1 for the decimal point
 
+def debug_display_image(image: np.array):
+    cv2.imshow("Image", image)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
 class Cell:
     def __init__(self, allowed_values: List[int], image: np.array):
         self.allowed_values = allowed_values
         half_height = image.shape[0] // 2
-        self.primary_image = image[:half_height, :]
-        self.secondary_image = image[half_height:, :]
+        self.primary_image = Cell.preprocess_image(image[:half_height, :])
+        self.secondary_image = Cell.preprocess_image(image[half_height:, :])
+
+    @staticmethod
+    def preprocess_image(image: np.array) -> np.array:
+        """converts to grayscale, resizes, pads to 28x28"""
+        height, width = image.shape[:2]
+        if height > width:
+            padding = (height - width) // 2
+            padded_image = cv2.copyMakeBorder(image, 0, 0, padding, padding, cv2.BORDER_CONSTANT, value=[255, 255, 255])
+        else:
+            padding = (width - height) // 2
+            padded_image = cv2.copyMakeBorder(image, padding, padding, 0, 0, cv2.BORDER_CONSTANT, value=[255, 255, 255])
+        resized = cv2.resize(padded_image, (DIGIT_IMAGE_SIZE, DIGIT_IMAGE_SIZE))
+        gray = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY)
+        return gray
+
+    @staticmethod
+    def is_empty(image: np.array) -> bool:
+        # TODO test! Das muss etwas sinnvoller sein, automatischer kontrast oder so
+        # image is a b/w image, 28x28; check whether the center pixels are all (nearly) white
+        center = Cell.image_center(image)
+        return np.mean(center) > 240
+
+    @staticmethod
+    def image_center(image: np.array) -> np.array:
+        return image[DIGIT_IMAGE_SIZE // 4:DIGIT_IMAGE_SIZE * 3 // 4, DIGIT_IMAGE_SIZE // 4:DIGIT_IMAGE_SIZE * 3 // 4]
+
+    def primary_or_secondary(self) -> np.array:
+        # TODO FIXME: das muss eine Ebene höher entschieden werden!
+        if self.is_empty(self.secondary_image):
+            return self.primary_image
+        return self.secondary_image
 
     def detect_number(self) -> int:
-        # Convert the primary image to grayscale
-        gray = cv2.cvtColor(self.primary_image, cv2.COLOR_BGR2GRAY)
-
-        # Resize the image to 28x28 pixels (the input size for the MNIST model)
-        resized = cv2.resize(gray, (28, 28))
-
         # Normalize the image
-        normalized = resized / 255.0
+        normalized = self.primary_or_secondary() / 255.0
 
         # Reshape the image to match the model's input shape
-        input_image = normalized.reshape(1, 28, 28, 1)
+        input_image = normalized.reshape(1, DIGIT_IMAGE_SIZE, DIGIT_IMAGE_SIZE, 1)
 
         # Load the pre-trained MNIST model
         model = load_model('mnist.h5')
@@ -45,6 +76,9 @@ class Cell:
         # Predict the digit
         prediction = model.predict(input_image)
         detected_number = np.argmax(prediction)
+
+        debug_display_image(self.primary_or_secondary())
+        # debug_display_image(input_image)
 
         if detected_number in self.allowed_values:
             return detected_number
@@ -85,7 +119,7 @@ class ExerciseGrades:
         image = cv2.imread(image_path)
         height, width, _ = image.shape
         total_cells = number_of_cells(achievable_points) + PADDING_CELLS_LEFT + PADDING_CELLS_RIGHT
-        cell_width = width // total_cells
+        cell_width = width / total_cells
 
         slices = []
         for i in range(PADDING_CELLS_LEFT, total_cells - PADDING_CELLS_RIGHT):
@@ -93,7 +127,8 @@ class ExerciseGrades:
             end_x = int((i + 1) * cell_width + CELL_CROP_PADDING * cell_width)
             slice_img = image[:, start_x:end_x]
             lower_half_slice = slice_img[height // 2:, :]
-            slices.append(lower_half_slice) # TODO FIXME Debug this, das Zurechtschneiden klappt noch nicht so recht
+            # debug_display_image(lower_half_slice)
+            slices.append(lower_half_slice)
 
         self.exercise_grades = []
         for exercise_idx, exercise_points in enumerate(achievable_points):
