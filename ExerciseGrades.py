@@ -5,13 +5,14 @@ import cv2
 import numpy as np
 from tensorflow.keras.models import load_model
 
+from training.create_augmented_base_data_set import DIGIT_IMAGE_SIZE
+
 EMPTY_THRESHOLD = 215
 
 PADDING_CELLS_LEFT = 1 # space (= number of cell widths) between upper right corner of ID 0 and start of grading table cells
 PADDING_CELLS_RIGHT = 1
 
 CELL_CROP_PADDING = 0.1
-DIGIT_IMAGE_SIZE = 28
 
 
 def number_of_cells(achievable_points: List[float]) -> int:
@@ -38,7 +39,8 @@ class Cell:
 
     @staticmethod
     def preprocess_image(image: np.array) -> np.array:
-        """converts to grayscale, resizes, pads to 28x28"""
+        """converts to grayscale, resizes, pads to target size"""
+        # TODO move to training script
         height, width = image.shape[:2]
         if height > width:
             padding = (height - width) // 2

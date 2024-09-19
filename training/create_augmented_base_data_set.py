@@ -6,7 +6,7 @@ from tqdm import tqdm
 import cv2
 import numpy as np
 
-DIGIT_IMAGE_SIZE = 32
+DIGIT_IMAGE_SIZE = 64
 
 def scale_image_with_border(image: np.array, target_size: int = DIGIT_IMAGE_SIZE, min_scale: float = 0.7, max_scale: float = 1.0) -> np.array:
     """
@@ -52,18 +52,18 @@ def add_random_lines(image: np.array) -> np.array:
     for i in range(random.choice([0, 1, 2, 4, 5])):
         line_type = random.choice(['vertical', 'horizontal'])
         dashed = random.choice([True, False])
-        thickness = random.choice([1, 2, 3])
+        thickness = random.choice(range(1,7))
         color = random.randint(0,150)
 
         if line_type == 'vertical':
-            offset = random.choice([0, 1, 2, 3, 4, 5, 6, 7])
+            offset = random.choice(range(16))
             x = random.choice([offset, w - offset])
             for y in range(0, h):
                 if dashed and y % 4 > 1:
                     continue
                 cv2.line(image, (x, y), (x, y + 1), (color, color, color), thickness)
         else:
-            offset = random.choice([0, 1, 2, 3])
+            offset = random.choice(range(7))
             y = random.choice([offset, h - offset])
             for x in range(0, w):
                 if dashed and x % 4 > 1:
@@ -103,7 +103,8 @@ def process_and_save_images(input_path: Path, output_path: Path):
                 processed_image_path = output_path / str(digit) / filename
                 cv2.imwrite(processed_image_path, final_image)
 
-random.seed(0)
-np.random.seed(0)
-# TODO path by parameters
-process_and_save_images(Path('../../abschlussarbeiten/pa-mersch/numbers/UNCATEGORIZED'), Path('../corpus/UNCAT_AUGMENTED'))
+if __name__ == '__main__':
+    random.seed(0)
+    np.random.seed(0)
+    # TODO path by parameters
+    process_and_save_images(Path('../../abschlussarbeiten/pa-mersch/numbers/UNCATEGORIZED'), Path('../corpus/UNCAT_AUGMENTED'))

@@ -94,7 +94,7 @@ def de_skew_and_crop_image(image: np.array, output_path: str):
         id_0_index = np.where(ids == 0)[0][0] # ID 0 = marker at the lower left of the table
         id_1_index = np.where(ids == 1)[0][0] # ID 1 = marker at the upper right of the table
 
-        min_x = corners[id_0_index][0][1][0] # upper right corner of ID 0
+        min_x = corners[id_0_index][0][1][0] # upper right corner of ID 0 # TODO umpositionieren, sodass nach unten hin weniger Platz verbraucht (andere Ecke nehmen)
         max_y = corners[id_0_index][0][1][1]
         max_x = corners[id_1_index][0][3][0] # lower left corner of ID 1
         min_y = corners[id_1_index][0][3][1]
