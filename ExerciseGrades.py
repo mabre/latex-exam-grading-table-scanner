@@ -29,7 +29,7 @@ def debug_display_image(image: np.array):
     cv2.destroyAllWindows()
 
 class Cell:
-    model = load_model('mnist.h5')
+    model = load_model('0-10-final.keras')
 
     def __init__(self, allowed_values: List[int], image: np.array):
         self.allowed_values = allowed_values
@@ -72,10 +72,8 @@ class Cell:
         if Cell.is_empty(image) and 0 in self.allowed_values:
             return 0
 
-        normalized = image / 255.0
-
         # Reshape the image to match the model's input shape
-        input_image = normalized.reshape(1, DIGIT_IMAGE_SIZE, DIGIT_IMAGE_SIZE, 1)
+        input_image = image.reshape(1, DIGIT_IMAGE_SIZE, DIGIT_IMAGE_SIZE, 1)
 
         predictions = Cell.model.predict(input_image)[0]
         allowed_predictions = {value: predictions[value] for value in self.allowed_values}
