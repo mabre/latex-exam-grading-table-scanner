@@ -139,7 +139,7 @@ if __name__ == '__main__':
     print(model.summary())
     # Definiere den Pfad und den Dateinamen für das gespeicherte Modell
 
-    checkpoint_path = "0-10.keras"
+    checkpoint_path = "0-10-checkpoint.keras"
     # Erstelle den Model Checkpoint
     checkpoint = ModelCheckpoint(
         checkpoint_path, monitor="val_loss", save_best_only=True, mode="min", verbose=1
@@ -147,9 +147,9 @@ if __name__ == '__main__':
 
 
     history = model.fit(
-        train_dataset, epochs=15, validation_data=val_dataset, callbacks=[checkpoint]
+        train_dataset, epochs=15, validation_data=val_dataset, callbacks=[checkpoint], steps_per_epoch=num_train_steps, validation_steps=num_val_steps
     )
 
-    model.save("0-10.h5")
+    model.save("0-10-final.keras")
 
     # TODO irgdein stand-alone tool für single-inference wär gut
