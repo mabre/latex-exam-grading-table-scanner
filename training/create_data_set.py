@@ -1,174 +1,84 @@
-# based on MA Mersch
-
+import os
+import random
+from pathlib import Path
+from tqdm import tqdm
 
 import cv2
-import os
 import numpy as np
-import h5py
+
+DIGIT_IMAGE_SIZE = 32
+
+def scale_image_with_border(image: np.array, target_size: int = 32) -> np.array:
+    h, w = image.shape[:2]
+    aspect_ratio = w / h
+
+    if aspect_ratio > 1:
+        new_w = target_size
+        new_h = int(target_size / aspect_ratio)
+    else:
+        new_h = target_size
+        new_w = int(target_size * aspect_ratio)
+
+    resized_image = cv2.resize(image, (new_w, new_h))
+    result = np.ones((target_size, target_size, 3), dtype=np.uint8) * 255
+
+    x_offset = (target_size - new_w) // 2
+    y_offset = (target_size - new_h) // 2
+    result[y_offset:y_offset + new_h, x_offset:x_offset + new_w] = resized_image
+
+    return result
 
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-image_size = 64
-dataset_size = 500000
-batch_size = 128
+def randomly_move_image(image: np.array, max_offset: int = 2) -> np.array:
+    h, w = image.shape[:2]
+    x_offset = random.randint(-max_offset, max_offset)
+    y_offset = random.randint(-max_offset, max_offset)
+
+    translation_matrix = np.float32([[1, 0, x_offset], [0, 1, y_offset]])
+    moved_image = cv2.warpAffine(image, translation_matrix, (w, h), borderMode=cv2.BORDER_CONSTANT, borderValue=(255, 255, 255))
+
+    return moved_image
+
+def add_random_lines(image: np.array) -> np.array:
+    h, w = image.shape[:2]
+    for i in range(random.choice([0, 1, 2, 4, 5])):
+        line_type = random.choice(['vertical', 'horizontal'])
+        dashed = random.choice([True, False])
+        thickness = random.choice([1, 2, 3])
+        color = random.randint(0,150)
+
+        if line_type == 'vertical':
+            offset = random.choice([0, 1, 2, 3, 4, 5, 6, 7])
+            x = random.choice([offset, w - offset])
+            for y in range(0, h):
+                if dashed and y % 4 > 1:
+                    continue
+                cv2.line(image, (x, y), (x, y + 1), (color, color, color), thickness)
+        else:
+            offset = random.choice([0, 1, 2, 3])
+            y = random.choice([offset, h - offset])
+            for x in range(0, w):
+                if dashed and x % 4 > 1:
+                    continue
+                cv2.line(image, (x, y), (x + 1, y), (color, color, color), thickness)
+
+    return image
 
 
-# Pfade zu den Trainings- und Testordnern
-hdf5_file = h5py.File("Training_Data/bilder_uncat.h5", "r")
+def process_and_save_images(input_path: Path, output_path: Path):
+    for digit in range(10):
+        digit_path = input_path / str(digit)
 
+        for filename in tqdm(os.listdir(digit_path), desc=f"Processing digit {digit}"):
+            if filename.lower().endswith('.png'):
+                image_path = digit_path / filename
+                image = cv2.imread(image_path)
 
-def read_images_from_hdf5(hdf5_file):
-    # Liste zum Speichern der Bilder pro Ziffer
-    bilder = [[] for _ in range(10)]
+                scaled_image = scale_image_with_border(image)
+                moved_image = randomly_move_image(scaled_image)
+                final_image = add_random_lines(moved_image)
 
-    def process_group(group, current_path):
-        for key in group.keys():
-            item = group[key]
-            item_path = current_path + "/" + key
+                processed_image_path = output_path / str(digit) / filename
+                cv2.imwrite(processed_image_path, final_image)
 
-            if isinstance(item, h5py.Group):
-                # Wenn es sich um eine Gruppe handelt, rekursiv durch die Untergruppen gehen
-                process_group(item, item_path)
-            elif isinstance(item, h5py.Dataset):
-                # Wenn es sich um einen Datensatz handelt, ist es ein Bild
-                image_data = item[()]
-                ziffer = int(current_path.split("/")[-2])
-                bilder[ziffer].append(image_data)
-
-    # Gruppe mit der Ordnerstruktur auswählen
-    root_group = hdf5_file["ordnerstruktur"]
-
-    # Bilder pro Ziffer verarbeiten
-    process_group(root_group, "")
-
-    # Bilder in Numpy-Arrays umwandeln
-    bilder = [np.array(images) for images in bilder]
-
-    return bilder
-
-
-def preprocess(img, shift=(0, 0), force_shift=False, shrink=0):
-    if img is not None:
-        kernel = np.ones((3, 3), np.uint8)
-        img = 255 - img
-
-        # cv2.imshow("img1", 255 - img)
-        # cv2.imwrite("img1.png", 255 - img)
-        # cv2.waitKey(0)
-
-        # every pixel wich is bigger than 70 is set to 255
-        img[img > 70] = 255
-        img[img <= 70] = 0
-
-        # cv2.imshow("img2", 255 - img)
-        # cv2.imwrite("img2.png", 255 - img)
-        # cv2.waitKey(0)
-
-        # Dilatation
-        # delete white border
-        if np.random.random_integers(0, 1) == 0:
-            img = cv2.dilate(img, kernel, iterations=np.random.random_integers(1, 3))
-
-        # cv2.imshow("img3", 255 - img)
-        # cv2.imwrite("img3.png", 255 - img)
-        # cv2.waitKey(0)
-
-        numberml = img
-        try:
-            while np.sum(numberml[:, 0]) == 0:
-                numberml = numberml[:, 1:]
-        except:
-            return np.ones((image_size, image_size))
-
-        # same for last column
-        try:
-            while np.sum(numberml[:, -1]) == 0:
-                numberml = numberml[:, :-1]
-        except:
-            return np.ones((image_size, image_size))
-
-        # same for first row
-        try:
-            while np.sum(numberml[0, :]) == 0:
-                numberml = numberml[1:, :]
-        except:
-            return np.ones((image_size, image_size))
-
-        # same for last row
-        try:
-            while np.sum(numberml[-1, :]) == 0:
-                numberml = numberml[:-1, :]
-        except:
-            return np.ones((image_size, image_size))
-
-        high = numberml.shape[0]
-        width = numberml.shape[1]
-        # cv2.imshow("img4", 255-numberml)
-        # cv2.imwrite("img4.png", 255-numberml)
-        # cv2.waitKey(0)
-
-        if width >= high:
-            numberml = cv2.copyMakeBorder(
-                numberml,
-                int((width - high) / 2),
-                int((width - high) / 2),
-                0,
-                0,
-                cv2.BORDER_CONSTANT,
-                value=[0, 0, 0],
-            )
-        elif high > width:
-            numberml = cv2.copyMakeBorder(
-                numberml,
-                0,
-                0,
-                int((high - width) / 2),
-                int((high - width) / 2),
-                cv2.BORDER_CONSTANT,
-                value=[0, 0, 0],
-            )
-
-        numberml = cv2.resize(numberml, (image_size, image_size))
-
-        # cv2.imshow("img5", 255 - numberml)
-        # cv2.imwrite("img5.png", 255 - numberml)
-        # cv2.waitKey(0)
-
-        img = numberml
-        img = 255 - img
-        img = img / 255
-        img = img.astype(dtype=np.float16)
-
-        return img
-
-
-# load all images from train folder
-train_images = []
-train_labels = []
-numbers = []
-numbers = read_images_from_hdf5(hdf5_file)
-hdf5_file.close()
-
-count = 0
-while True:
-    if count % 1000 == 0:
-        print(count / (dataset_size / 100), end="%\r")
-        if count > dataset_size:
-            break
-
-    # number from 0 to 9
-    number = np.random.random_integers(0, 9)
-    zoom = np.random.random_integers(0, 5)
-    if len(numbers[number]) == 0:
-        break
-    img = np.random.choice(numbers[number], replace=False)
-    img = preprocess(img, (-7, 7), shrink=zoom)
-
-    train_images.append(img)
-    train_labels.append(number)
-    count += 1
-
-
-# save images and labels
-np.save("train_images1digit.npy", train_images)
-np.save("train_labels1digit.npy", train_labels)
+process_and_save_images(Path('../../abschlussarbeiten/pa-mersch/numbers/UNCATEGORIZED'), Path('../corpus/UNCAT_AUGMENTED'))
