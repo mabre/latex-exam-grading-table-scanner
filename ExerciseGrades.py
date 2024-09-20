@@ -87,17 +87,19 @@ class ExerciseGrade:
         self.max_value = max_value
 
         self.cells = []
+        # TODO support für dreistellig; braucht Tests; bei max. 25 Punkten erlaubt dieser Code auch 29!
+        if len(images) != 3:
+            raise NotImplementedError("Only 3 cells are supported")
         for idx, image in enumerate(images):
-            if idx == len(images) - 1:
+            if idx == 2:
                 self.cells.append(Cell([0, 5], image))
-            elif idx == len(images) - 2:
-                self.cells.append(Cell([n for n in range(int(max_value) % 10 + 1)], image))
-            elif idx == len(images) - 3:
+            elif idx == 1:
+                if max_value < 10:
+                    self.cells.append(Cell([n for n in range(int(max_value) % 10 + 1)], image))
+                else:
+                    self.cells.append(Cell([n for n in range(10)], image))
+            elif idx == 0:
                 self.cells.append(Cell([n for n in range(int(max_value // 10) % 10 + 1)], image))
-            elif idx == len(images) - 4:
-                self.cells.append(Cell([n for n in range(int(max_value // 100) % 10 + 1)], image)) #  TODO generalize
-            else:
-                raise ValueError("Unexpected number of images")
 
     def use_secondary(self) -> bool:
         return any([not cell.secondary_is_empty() for cell in self.cells])
