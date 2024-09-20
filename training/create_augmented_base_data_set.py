@@ -8,7 +8,9 @@ import numpy as np
 
 DIGIT_IMAGE_SIZE = 64
 
-def scale_image_with_border(image: np.array, target_size: int = DIGIT_IMAGE_SIZE, min_scale: float = 0.7, max_scale: float = 1.0) -> np.array:
+EMPTY_FRAMES=[cv2.imread("../resources/empty_frames/" + filename) for filename in os.listdir("../resources/empty_frames") if filename.lower().endswith('.png')]
+
+def scale_image_with_border(image: np.array, target_size: int = DIGIT_IMAGE_SIZE, min_scale: float = 0.4, max_scale: float = 1) -> np.array:
     """
     input is an image with a handwritten digit (nothing else, no lines etc.) of any size
     the following operations are applied
@@ -47,30 +49,10 @@ def randomly_move_image(image: np.array, max_offset: int = 2) -> np.array:
 
     return moved_image
 
+
 def add_random_lines(image: np.array) -> np.array:
-    h, w = image.shape[:2]
-    for i in range(random.choice([0, 1, 2, 4, 5])):
-        line_type = random.choice(['vertical', 'horizontal'])
-        dashed = random.choice([True, False])
-        thickness = random.choice(range(1,7))
-        color = random.randint(0,150)
-
-        if line_type == 'vertical':
-            offset = random.choice(range(16))
-            x = random.choice([offset, w - offset])
-            for y in range(0, h):
-                if dashed and y % 4 > 1:
-                    continue
-                cv2.line(image, (x, y), (x, y + 1), (color, color, color), thickness)
-        else:
-            offset = random.choice(range(7))
-            y = random.choice([offset, h - offset])
-            for x in range(0, w):
-                if dashed and x % 4 > 1:
-                    continue
-                cv2.line(image, (x, y), (x + 1, y), (color, color, color), thickness)
-
-    return image
+    frame = randomly_move_image(randomly_rotate_image(random.choice(EMPTY_FRAMES), 2), 2)
+    return cv2.bitwise_and(image, frame)
 
 
 def randomly_rotate_image(image: np.array, max_angle: int = 5) -> np.array:
