@@ -65,31 +65,29 @@ if __name__ == '__main__':
     num_val_steps = len(test_images) // BATCH_SIZE
 
 
-    def data_generator(images, labels, batch_size, num_steps):
+    def data_generator(images, labels, batch_size):
         num_samples = len(images)
-        step = 0
-        while step < num_steps:
+        while True:
             indices = np.random.choice(num_samples, size=batch_size, replace=False)
             batch_images = images[indices]
             batch_labels = labels[indices]
             yield batch_images, batch_labels
-            step += 1
 
 
     train_dataset = tf.data.Dataset.from_generator(
-        lambda: data_generator(train_images, train_labels, BATCH_SIZE, num_train_steps),
+        lambda: data_generator(train_images, train_labels, BATCH_SIZE),
         output_signature=(
             tf.TensorSpec(shape=(BATCH_SIZE, DIGIT_IMAGE_SIZE, DIGIT_IMAGE_SIZE, 1), dtype=tf.float32),
             tf.TensorSpec(shape=(BATCH_SIZE,), dtype=tf.float32),
         ),
-    )
+    ).repeat()
     val_dataset = tf.data.Dataset.from_generator(
-        lambda: data_generator(test_images, test_labels, BATCH_SIZE, num_val_steps),
+        lambda: data_generator(test_images, test_labels, BATCH_SIZE),
         output_signature=(
             tf.TensorSpec(shape=(BATCH_SIZE, DIGIT_IMAGE_SIZE, DIGIT_IMAGE_SIZE, 1), dtype=tf.float32),
             tf.TensorSpec(shape=(BATCH_SIZE,), dtype=tf.float32),
         ),
-    )
+    ).repeat()
 
 
     # model.add(Lambda(standardize,input_shape=(28,28,1)))
