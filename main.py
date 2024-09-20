@@ -9,7 +9,7 @@ from qreader import QReader
 
 from ExerciseGrades import ExerciseGrades, debug_display_image
 
-ACHIEVABLE_POINTS = [9, 7, 2, 2, 3, 3]
+ACHIEVABLE_POINTS = [9, 7, 13, 12, 4, 7, 12, 26]
 
 SKIP_N_FRAMES = 5 # for speed
 
@@ -29,6 +29,7 @@ def extract_frames(video_path: str) -> Dict[int, np.array]:
         if frame_number % SKIP_N_FRAMES == 0:
             student_number = student_number_from_qr_code(frame)
             if student_number is not None and has_all_aruco_markers(frame):
+                print(f"Found student number {student_number} and all aruco markers in frame {frame_number}")
                 if previous_student_number != student_number and previous_student_number is not None:
                     relevant_frames[previous_student_number] = new_frames[len(new_frames) // 2]
                     new_frames = []
@@ -89,15 +90,15 @@ def de_skew_and_crop_image(image: np.array, output_path: str):
 
     corners, ids = detect_aruco_markers(rotated_image)
 
-    if ids is not None and len(ids) >= 2:
+    if ids is not None and len(ids) >= 3:
         # Extract the corners of the markers with IDs 0 and 1
         id_0_index = np.where(ids == 0)[0][0] # ID 0 = marker at the lower left of the table
         id_1_index = np.where(ids == 1)[0][0] # ID 1 = marker at the upper right of the table
 
-        min_x = corners[id_0_index][0][1][0] # upper right corner of ID 0 # TODO umpositionieren, sodass nach unten hin weniger Platz verbraucht (andere Ecke nehmen)
-        max_y = corners[id_0_index][0][1][1]
-        max_x = corners[id_1_index][0][3][0] # lower left corner of ID 1
-        min_y = corners[id_1_index][0][3][1]
+        min_x = corners[id_0_index][0][2][0] # bottom right corner of ID 0
+        max_y = corners[id_0_index][0][2][1]
+        max_x = corners[id_1_index][0][0][0] # top left corner of ID 1
+        min_y = corners[id_1_index][0][0][1]
 
         src_points = np.array([
             [min_x, max_y],
@@ -128,14 +129,14 @@ def de_skew_and_crop_image(image: np.array, output_path: str):
         cv2.imwrite(output_path, binary)
         print(f"De-skewed and cropped image saved to {output_path}")
     else:
-        print("Not enough ArUco markers detected to de-skew and crop the image")
+        print(f"Not enough ArUco markers detected to crop the image: {len(corners)}")
 
 
 def rotate_image_by_aruco(image: np.array):
     corners, ids = detect_aruco_markers(image)
 
     if len(corners) != 3:
-        print(f"Not enough ArUco markers detected to de-skew and crop the image: {len(corners)}")
+        print(f"Not enough ArUco markers detected to de-skew the image: {len(corners)}")
         return
 
     # Extract the corners of the markers with IDs 0 and 1
@@ -165,4 +166,5 @@ def grades_from_video(video_path: str):
 
 if __name__ == "__main__":
     # TODO logger
-    grades_from_video("test/resources/VID_20240918_170200.mp4")
+    grades_from_video("test/resources/blatt12.mp4")
+# TODO Summenfelder sollte, benannt nach ErkkannteZahl_Matrikelnummer, rausgeschrieben werden, damit das manuell gecheckt werden kann (dirkts ins xlsx?)
