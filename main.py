@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Optional, Dict
+from typing import Optional, Dict, Tuple
 
 import cv2
 import cv2.aruco as aruco
@@ -63,7 +63,7 @@ def has_all_aruco_markers(image: np.array) -> bool:
     return len(corners) == 3
 
 
-def detect_aruco_markers(image: np.array):
+def detect_aruco_markers(image: np.array) -> Tuple[Tuple, np.array]:
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     # note: use https://chev.me/arucogen/ to generate markers
     aruco_dict = aruco.getPredefinedDictionary(aruco.DICT_4X4_50)
@@ -86,9 +86,7 @@ def rotate_image(image: np.array, angle: float) -> np.array:
     return rotated
 
 def de_skew_and_crop_image(image: np.array, output_path: str):
-    rotated_image = rotate_image_by_aruco(image)
-
-    corners, ids = detect_aruco_markers(rotated_image)
+    rotated_image, corners, ids = rotate_image_by_aruco(image)
 
     if ids is not None and len(ids) >= 3:
         # Extract the corners of the markers with IDs 0 and 1
@@ -132,7 +130,7 @@ def de_skew_and_crop_image(image: np.array, output_path: str):
         print(f"Not enough ArUco markers detected to crop the image: {len(corners)}")
 
 
-def rotate_image_by_aruco(image: np.array):
+def rotate_image_by_aruco(image: np.array) -> Optional[Tuple[np.array, Tuple, Tuple]]:
     corners, ids = detect_aruco_markers(image)
 
     if len(corners) != 3:
@@ -145,7 +143,22 @@ def rotate_image_by_aruco(image: np.array):
     angle = calculate_rotation_angle(corners[id_0_index][0], corners[id_2_index][0])
     rotated_image = rotate_image(image, angle)
     print(f"Rotated image by {angle} degrees")
-    return rotated_image
+
+    corners_after_rotation, ids_after_rotation = detect_aruco_markers(rotated_image)
+
+    print(type(corners_after_rotation), type(ids_after_rotation))
+
+    if len(ids_after_rotation) != 3:
+        print("Not all ArUco markers detected after rotation, using transformed original markers instead")
+
+        rotation_matrix = cv2.getRotationMatrix2D((image.shape[1] // 2, image.shape[0] // 2), angle, 1.0)
+        new_corners = []
+        for corner in corners:
+            new_corner = cv2.transform(corner, rotation_matrix)
+            new_corners.append(new_corner)
+        return rotated_image, tuple(new_corners), ids
+
+    return rotated_image, corners_after_rotation, ids_after_rotation
 
 
 def debug_draw_aruco_markers(corners, ids, image):

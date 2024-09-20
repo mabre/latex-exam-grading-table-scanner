@@ -1,2 +1,8 @@
-opencv-python
-numpy
+opencv-python~=4.10.0.84
+numpy~=1.26.4
+qreader~=3.14
+tensorflow~=2.17.0
+keras~=3.5.0
+h5py~=3.11.0
+scikit-learn~=1.5.2
+tqdm~=4.66.5
