@@ -146,8 +146,6 @@ def rotate_image_by_aruco(image: np.array) -> Optional[Tuple[np.array, Tuple, Tu
 
     corners_after_rotation, ids_after_rotation = detect_aruco_markers(rotated_image)
 
-    print(type(corners_after_rotation), type(ids_after_rotation))
-
     if len(ids_after_rotation) != 3:
         print("Not all ArUco markers detected after rotation, using transformed original markers instead")
 
@@ -175,6 +173,7 @@ def grades_from_video(video_path: str):
         de_skew_and_crop_image(image, "/tmp/grades.png")
         eg = ExerciseGrades("/tmp/grades.png", ACHIEVABLE_POINTS, student_number)
         eg.write_training_images(Path("corpus"))
+        eg.write_sum(Path("check_sum"))
         print(eg)
 
 if __name__ == "__main__":

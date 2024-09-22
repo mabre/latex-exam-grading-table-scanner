@@ -114,6 +114,11 @@ class ExerciseGrade:
 
         return number / 10
 
+    def get_used_image(self) -> np.array:
+        return np.concatenate([cell.secondary_image if self.use_secondary() else cell.primary_image
+                               for cell in self.cells], axis=1)
+
+
 class ExerciseGrades:
     def __init__(self, image_path: str, achievable_points: List[float], student_number: int):
         self.student_number = student_number
@@ -158,4 +163,8 @@ class ExerciseGrades:
                     image = cell.secondary_image
                 if not Cell.is_empty(image):
                     cv2.imwrite(directory / f"{self.student_number}_{idx}_{cell_idx}.png", image)
+
+    def write_sum(self, directory: Path) -> None:
+        cv2.imwrite(directory / f"{self.sum.detect_number():05.1f}_{self.student_number}.png",
+                    self.sum.get_used_image())
 
