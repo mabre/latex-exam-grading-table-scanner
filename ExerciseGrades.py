@@ -1,5 +1,6 @@
+from itertools import product
 from pathlib import Path
-from typing import List
+from typing import List, Dict, Tuple
 
 import cv2
 import numpy as np
@@ -68,28 +69,28 @@ class Cell:
         # note that the original images are not quadratic; we should shove off the black border
         return image[DIGIT_IMAGE_SIZE // 4:DIGIT_IMAGE_SIZE * 3 // 4, int(DIGIT_IMAGE_SIZE * (3/10)):int(DIGIT_IMAGE_SIZE * (7/10))]
 
-    def detect_number(self, use_secondary: bool) -> int:
+    def detect_number(self, use_secondary: bool) -> Dict[int, float]:
         image = self.secondary_image if use_secondary else self.primary_image
-
-        if Cell.is_empty(image) and 0 in self.allowed_values:
-            return 0
 
         # Reshape the image to match the model's input shape
         input_image = image.reshape(1, DIGIT_IMAGE_SIZE, DIGIT_IMAGE_SIZE, 1)
 
         predictions = Cell.model.predict(input_image)[0]
         allowed_predictions = {value: predictions[value] for value in self.allowed_values}
-        detected_number = max(allowed_predictions, key=allowed_predictions.get)
 
         # debug_display_image(image)
-        return detected_number # TODO Alternativen returnen; bei zu kleiner W'keit warnen
+
+        if Cell.is_empty(image) and 0 in self.allowed_values:
+            allowed_predictions[0] = .999
+            return allowed_predictions
+        return allowed_predictions
 
 class ExerciseGrade:
     def __init__(self, max_value: float, images: List[np.array]):
         self.max_value = max_value
 
         self.cells = []
-        # TODO support für dreistellig; braucht Tests; bei max. 25 Punkten erlaubt dieser Code auch 29!
+        # TODO support für dreistellig; braucht Tests;
         if len(images) != 3:
             raise NotImplementedError("Only 3 cells are supported")
         for idx, image in enumerate(images):
@@ -107,12 +108,32 @@ class ExerciseGrade:
         return any([not cell.secondary_is_empty() for cell in self.cells])
 
     def detect_number(self) -> float:
-        number = 0
-        for cell in self.cells:
-            number *= 10
-            number += cell.detect_number(self.use_secondary())
+        def build_number(digits: List[int]) -> float:
+            number = 0
+            for digit in digits:
+                number *= 10
+                number += digit
+            return number / 10
 
-        return number / 10
+        def get_combinations_with_probabilities(dict_list: List[Dict[int, float]]) -> List[Tuple[List[int], float]]:
+            keys_combinations = list(product(*[list(d.keys()) for d in dict_list]))
+
+            combinations_with_probabilities = []
+
+            for combination in keys_combinations:
+                probability = 1
+                for idx, key in enumerate(combination):
+                    probability *= dict_list[idx][key]
+                combinations_with_probabilities.append((list(combination), probability))
+
+            return sorted(combinations_with_probabilities, key=lambda ns_p: ns_p[1], reverse=True)
+
+        detection_results = [cell.detect_number(self.use_secondary()) for cell in self.cells]
+
+        digits, p = next(filter(lambda ns_p: build_number(ns_p[0]) <= self.max_value,
+                    get_combinations_with_probabilities(detection_results)), 0)
+        return build_number(digits)
+
 
     def get_used_image(self) -> np.array:
         return np.concatenate([cell.secondary_image if self.use_secondary() else cell.primary_image
