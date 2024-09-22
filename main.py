@@ -13,7 +13,7 @@ ACHIEVABLE_POINTS = [9, 7, 13, 12, 4, 7, 12, 26]
 
 SKIP_N_FRAMES = 5 # for speed
 
-qreader = QReader()
+qreader = QReader(min_confidence=.4)
 
 
 def extract_frames(video_path: str) -> Dict[int, np.array]:
