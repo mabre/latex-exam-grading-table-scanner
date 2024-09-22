@@ -57,6 +57,7 @@ class Cell:
         # note that the input image should already be contrast-normalized
         center = Cell.image_center(image)
         # debug_display_image(center)
+        # print(np.mean(center))
         return np.mean(center) > EMPTY_THRESHOLD
 
     def secondary_is_empty(self) -> bool:
@@ -64,7 +65,8 @@ class Cell:
 
     @staticmethod
     def image_center(image: np.array) -> np.array:
-        return image[DIGIT_IMAGE_SIZE // 4:DIGIT_IMAGE_SIZE * 3 // 4, DIGIT_IMAGE_SIZE // 4:DIGIT_IMAGE_SIZE * 3 // 4]
+        # note that the original images are not quadratic; we should shove off the black border
+        return image[DIGIT_IMAGE_SIZE // 4:DIGIT_IMAGE_SIZE * 3 // 4, int(DIGIT_IMAGE_SIZE * (3/10)):int(DIGIT_IMAGE_SIZE * (7/10))]
 
     def detect_number(self, use_secondary: bool) -> int:
         image = self.secondary_image if use_secondary else self.primary_image
