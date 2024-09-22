@@ -8,7 +8,8 @@ import numpy as np
 
 DIGIT_IMAGE_SIZE = 64
 
-EMPTY_FRAMES=[cv2.imread("../resources/empty_frames/" + filename) for filename in os.listdir("../resources/empty_frames") if filename.lower().endswith('.png')]
+# todo pass path as argument and pass around as parameter - problem when loaded as module
+EMPTY_FRAMES=[]#[cv2.imread("resources/empty_frames/" + filename) for filename in os.listdir("resources/empty_frames") if filename.lower().endswith('.png')]
 
 def scale_image_with_border(image: np.array, target_size: int = DIGIT_IMAGE_SIZE, min_scale: float = 0.4, max_scale: float = 1) -> np.array:
     """

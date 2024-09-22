@@ -7,7 +7,7 @@ from tensorflow.keras.models import load_model
 
 from training.create_augmented_base_data_set import DIGIT_IMAGE_SIZE
 
-EMPTY_THRESHOLD = 215
+EMPTY_THRESHOLD = 205
 
 PADDING_CELLS_LEFT = 1 # space (= number of cell widths) between upper right corner of ID 0 and start of grading table cells
 PADDING_CELLS_RIGHT = 1
@@ -57,7 +57,7 @@ class Cell:
         # note that the input image should already be contrast-normalized
         center = Cell.image_center(image)
         # debug_display_image(center)
-        # print(np.mean(center))
+        print(np.mean(center))
         return np.mean(center) > EMPTY_THRESHOLD
 
     def secondary_is_empty(self) -> bool:
