@@ -1,3 +1,4 @@
+import time
 from pathlib import Path
 from typing import Optional, Dict, Tuple
 
@@ -10,8 +11,6 @@ from qreader import QReader
 from ExerciseGrades import ExerciseGrades, debug_display_image
 
 ACHIEVABLE_POINTS = [9, 7, 13, 12, 4, 7, 12, 26]
-
-SKIP_N_FRAMES = 5 # for speed
 
 qreader = QReader(min_confidence=.4)
 
@@ -26,9 +25,12 @@ def extract_frames(video_path: str) -> Dict[int, np.array]:
         ret, frame = cap.read()
         if not ret:
             break
-        if frame_number % SKIP_N_FRAMES == 0:
+        # finding aruco markers is MUCH faster (factor 6) than finding QR codes
+        # furthermore, when aruco markers are found, an QR code is usually also detected (but not vice versa)
+        if has_all_aruco_markers(frame):
+            print("markers found")
             student_number = student_number_from_qr_code(frame)
-            if student_number is not None and has_all_aruco_markers(frame):
+            if student_number is not None:
                 print(f"Found student number {student_number} and all aruco markers in frame {frame_number}")
                 if previous_student_number != student_number and previous_student_number is not None:
                     relevant_frames[previous_student_number] = new_frames[len(new_frames) // 2]
@@ -167,7 +169,11 @@ def debug_draw_aruco_markers(corners, ids, image):
 
 
 def grades_from_video(video_path: str):
+    start_time = time.time()
     frames = extract_frames(video_path)
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    print(f"Time taken to extract frames: {elapsed_time} seconds")
     for student_number, image in frames.items():
         # debug_display_image(image)
         de_skew_and_crop_image(image, "/tmp/grades.png")
@@ -178,5 +184,4 @@ def grades_from_video(video_path: str):
 
 if __name__ == "__main__":
     # TODO logger
-    grades_from_video("test/resources/blatt12.mp4")
-# TODO Summenfelder sollte, benannt nach ErkkannteZahl_Matrikelnummer, rausgeschrieben werden, damit das manuell gecheckt werden kann (dirkts ins xlsx?)
+    grades_from_video("/home/markus/Dokument/git/lehre/klausurscanner/test/resources/VID_20240923_102406.mp4")

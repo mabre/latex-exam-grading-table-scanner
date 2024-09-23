@@ -58,7 +58,7 @@ class Cell:
         # note that the input image should already be contrast-normalized
         center = Cell.image_center(image)
         # debug_display_image(center)
-        print(np.mean(center))
+        # print(np.mean(center))
         return np.mean(center) > EMPTY_THRESHOLD
 
     def secondary_is_empty(self) -> bool:
