@@ -135,6 +135,7 @@ class ExerciseGrade:
 
         probabilities = get_combinations_with_probabilities(detection_results)
         result = [(build_number(digits), p) for digits, p in probabilities if p > 0.1][:5]
+        # todo: probability mit zurückgeben und in ExerciseGradesGroup nutzen (und dokumentieren, was so ein Objekt repräsentiert ...)
         if len(result) == 0:
             print("TODO: no good match found")
             return [(build_number(probabilities[0][0]), probabilities[0][1])]

@@ -41,6 +41,7 @@ def find_grading_table_and_student_number(frame_data: Tuple[int, np.array]) -> O
 
 @log_execution_time
 def extract_frames(video_path: str) -> Dict[int, np.array]:
+    # todo safe all frames for each student, than take best sum-matching prediction; Achtung: immer noch die äußeren Frames verwerfen, falls die zu ner anderen Klausur gehören und wir mind. 5 Frames haben
     cap = cv2.VideoCapture(video_path)
     relevant_frames = {}
     frame_number = 0
@@ -63,7 +64,7 @@ def extract_frames(video_path: str) -> Dict[int, np.array]:
             if result:
                 student_number, frame, frame_number = result
                 # for debugging purposes: save all frames
-                # relevant_frames[student_number * 100_000 + frame_number] = frame
+                relevant_frames[student_number * 100_000 + frame_number] = frame
                 if previous_student_number != student_number and previous_student_number is not None:
                     relevant_frames[previous_student_number] = new_frames[len(new_frames) // 2]
                     new_frames = []
@@ -204,29 +205,46 @@ def debug_draw_aruco_markers(corners, ids, image):
 def grades_from_video(video_path: str):
     frames = extract_frames(video_path)
 
-    # todo extract functions
-    exams = []
-    for student_number, image in sorted(frames.items()):
-        # debug_display_image(image)
-        de_skew_and_crop_image(image, "/tmp/grades.png") # todo proper temp file
-        eg = ExerciseGrades("/tmp/grades.png", ACHIEVABLE_POINTS, student_number)
-        print(eg)
-        exams.append(eg)
+    exams = extract_grades(frames)
 
     for eg in exams:
         eg.write_training_images(Path("corpus"))
 
     # TODO extract function
+    write_to_xlsx(exams)
+
+
+def write_to_xlsx(exams):
     wb = openpyxl.Workbook()
     ws = wb.active
+
     number_of_fields = len(exams[0].grades())
-    header_line = ["Matrikelnummer"] + [f"A{i}" for i in range(1, number_of_fields)] + ["Σ (erkannt)", "Σ (von Worksheet berechnet)", "Σ==Σ?"] + [f"A{i}-Bild" for i in range(1, number_of_fields)] + ["Σ-Bild"]
+    exercise_headers = [f"A{i}" for i in range(1, number_of_fields)]
+    sum_headers = ["Σ (erkannt)",
+                  "Σ (von Worksheet berechnet)",
+                  "Σ==Σ?"]
+    exercise_image_headers = [f"A{i}-Bild" for i in range(1, number_of_fields)]
+    header_line = ["Matrikelnummer"] + exercise_headers + sum_headers + exercise_image_headers + ["Σ-Bild"]
     for i, header in enumerate(header_line, start=1):
         ws.cell(row=1, column=i, value=header)
 
     for eg in exams:
         eg.write_line(ws)
-    wb.save("/tmp/grades.xlsx") # todo path as argument
+
+    wb.save("/tmp/grades.xlsx")  # todo path as argument
+
+
+def extract_grades(frames):
+    # todo extract functions
+    exams = []
+    # todo parallelize + sort by student number; warnen, wenn zwei (nicht aufeinander folgende) Klausuren dieselbe Summe haben: komplett ausgeben zum Manuellen inspizieren
+    for student_number, image in sorted(frames.items()):
+        # debug_display_image(image)
+        de_skew_and_crop_image(image, "/tmp/grades.png")  # todo proper temp file
+        eg = ExerciseGrades("/tmp/grades.png", ACHIEVABLE_POINTS, student_number)
+        print(eg)
+        exams.append(eg)
+    return exams
 
 
 if __name__ == "__main__":
