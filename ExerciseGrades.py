@@ -4,6 +4,9 @@ from typing import List, Dict, Tuple
 
 import cv2
 import numpy as np
+from openpyxl.drawing.image import Image
+from openpyxl.utils import get_column_letter
+from openpyxl.worksheet.worksheet import Worksheet
 from tensorflow.keras.models import load_model
 
 from training.create_augmented_base_data_set import DIGIT_IMAGE_SIZE
@@ -136,8 +139,12 @@ class ExerciseGrade:
 
 
     def get_used_image(self) -> np.array:
-        return np.concatenate([cell.secondary_image if self.use_secondary() else cell.primary_image
-                               for cell in self.cells], axis=1)
+        concatenated = np.concatenate([cell.secondary_image if self.use_secondary() else cell.primary_image for cell in self.cells], axis=1)
+        column_sums = np.sum(concatenated, axis=0)
+        non_white_columns = np.where(column_sums < 255 * concatenated.shape[0])[0]
+        if non_white_columns.size > 0:
+            return concatenated[:, non_white_columns]
+        return concatenated
 
 
 class ExerciseGrades:
@@ -182,16 +189,44 @@ class ExerciseGrades:
         return str(self.student_number) + "," + ",".join([str(grade) for grade in self.grades()]) + "," + str(self.preducted_sum_matches)
 
     def write_training_images(self, directory: Path) -> None:
-        for idx, exercise_grade in enumerate(self.exercise_grades + [self.sum]):
+        for idx, exercise_grade in enumerate(self.exercise_grades + [self.sum], start=1):
             for cell_idx, cell in enumerate(exercise_grade.cells):
                 image = cell.primary_image
                 if exercise_grade.use_secondary():
                     image = cell.secondary_image
                 if not Cell.is_empty(image):
-                    cv2.imwrite(directory / f"{self.student_number}_{idx+1}_{cell_idx}.png", image)
+                    cv2.imwrite(directory / f"{self.student_number}_{idx}_{cell_idx}.png", image)
 
-    def write_sum(self, directory: Path) -> None:
-        cv2.imwrite(directory / f"{self.sum.detect_number():05.1f}_{self.student_number}.png",
-                    self.sum.get_used_image())
-        # TODO write _all_ cells to export xlsx for validation
+
+    @staticmethod
+    def _write_image_to_cell(ws: Worksheet, image_array: np.array, row: int, col: int):
+        path = f"/tmp/__image_{row}_{col}.png"
+        cv2.imwrite(path, image_array) # todo use proper temp path
+        img = Image(path)
+
+        old_height = img.height
+        img.height = 20
+        img.width = int(img.width * (20 / old_height))
+
+        cell_address = get_column_letter(col) + str(row)
+
+        ws.add_image(img, cell_address)
+
+
+    def write_line(self, ws: Worksheet) -> None:
+        # TODO Header, Matrikelnummer
+        target_row = ws.max_row + 1
+
+        for col, number in enumerate(self.grades(), start=1):
+            ws.cell(row=target_row, column=col, value=number)
+
+        sum_cell = get_column_letter(len(self.grades()) + 1) + str(target_row)
+        ws[sum_cell] = f"=SUM(A{target_row}:{get_column_letter(len(self.grades()) - 1)}{target_row})"
+
+        sum_matches_cell = get_column_letter(len(self.grades()) + 2) + str(target_row)
+        ws[sum_matches_cell] = f"={sum_cell}={get_column_letter(len(self.grades()))}{target_row}"
+
+        for idx, exercise_grade in enumerate(self.exercise_grades + [self.sum], start=len(self.grades()) + 3):
+            ExerciseGrades._write_image_to_cell(ws, exercise_grade.get_used_image(), target_row, idx)
+
 

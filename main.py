@@ -6,6 +6,7 @@ import cv2
 import cv2.aruco as aruco
 
 import numpy as np
+import openpyxl
 from qreader import QReader
 
 from ExerciseGrades import ExerciseGrades, debug_display_image
@@ -182,13 +183,24 @@ def debug_draw_aruco_markers(corners, ids, image):
 
 def grades_from_video(video_path: str):
     frames = extract_frames(video_path)
+
+    # todo extract functions
+    exams = []
     for student_number, image in frames.items():
         # debug_display_image(image)
         de_skew_and_crop_image(image, "/tmp/grades.png")
         eg = ExerciseGrades("/tmp/grades.png", ACHIEVABLE_POINTS, student_number)
-        eg.write_training_images(Path("corpus"))
-        eg.write_sum(Path("check_sum"))
         print(eg)
+        exams.append(eg)
+
+    for eg in exams:
+        eg.write_training_images(Path("corpus"))
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    for eg in exams:
+        eg.write_line(ws)
+    wb.save("/tmp/grades.xlsx") # todo path as argument
 
 
 if __name__ == "__main__":
