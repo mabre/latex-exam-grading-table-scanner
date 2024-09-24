@@ -4,11 +4,10 @@ from typing import List, Dict, Tuple
 
 import cv2
 import numpy as np
-from openpyxl.drawing.image import Image
-from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.worksheet import Worksheet
 from tensorflow.keras.models import load_model
 
+from WorksheetFunctions import column_index_by_title, column_letter_by_title, write_image_to_cell
 from training.create_augmented_base_data_set import DIGIT_IMAGE_SIZE
 
 EMPTY_THRESHOLD = 205
@@ -177,8 +176,8 @@ class ExerciseGrades:
     def _predict_grades(self) -> List[float]:
         self.predicted_grades = [exercise_grade.detect_number() for exercise_grade in self.exercise_grades]
         self.predicted_sum = self.sum.detect_number()
-        self.preducted_sum_matches = sum(self.predicted_grades) == self.predicted_sum
-        if not self.preducted_sum_matches:
+        self.predicted_sum_matches = sum(self.predicted_grades) == self.predicted_sum
+        if not self.predicted_sum_matches:
             print("TODO: sum not matching")
         return self.predicted_grades + [self.predicted_sum]
 
@@ -186,7 +185,7 @@ class ExerciseGrades:
         return self._grades
 
     def __repr__(self) -> str:
-        return str(self.student_number) + "," + ",".join([str(grade) for grade in self.grades()]) + "," + str(self.preducted_sum_matches)
+        return str(self.student_number) + "," + ",".join([str(grade) for grade in self.grades()]) + "," + str(self.predicted_sum_matches)
 
     def write_training_images(self, directory: Path) -> None:
         for idx, exercise_grade in enumerate(self.exercise_grades + [self.sum], start=1):
@@ -198,35 +197,26 @@ class ExerciseGrades:
                     cv2.imwrite(directory / f"{self.student_number}_{idx}_{cell_idx}.png", image)
 
 
-    @staticmethod
-    def _write_image_to_cell(ws: Worksheet, image_array: np.array, row: int, col: int):
-        path = f"/tmp/__image_{row}_{col}.png"
-        cv2.imwrite(path, image_array) # todo use proper temp path
-        img = Image(path)
-
-        old_height = img.height
-        img.height = 20
-        img.width = int(img.width * (20 / old_height))
-
-        cell_address = get_column_letter(col) + str(row)
-
-        ws.add_image(img, cell_address)
-
-
     def write_line(self, ws: Worksheet) -> None:
-        # TODO Header, Matrikelnummer
         target_row = ws.max_row + 1
 
-        for col, number in enumerate(self.grades(), start=1):
-            ws.cell(row=target_row, column=col, value=number)
+        ws.cell(row=target_row, column=column_index_by_title(ws, "Matrikelnummer"), value=self.student_number)
 
-        sum_cell = get_column_letter(len(self.grades()) + 1) + str(target_row)
-        ws[sum_cell] = f"=SUM(A{target_row}:{get_column_letter(len(self.grades()) - 1)}{target_row})"
+        exercises_points = self.grades()[:-1]
+        for exercise_number, p in enumerate(exercises_points, start=1):
+            ws.cell(row=target_row, column=column_index_by_title(ws, f"A{exercise_number}"), value=p)
 
-        sum_matches_cell = get_column_letter(len(self.grades()) + 2) + str(target_row)
-        ws[sum_matches_cell] = f"={sum_cell}={get_column_letter(len(self.grades()))}{target_row}"
+        sum_points = self.grades()[-1]
+        ws.cell(row=target_row, column=column_index_by_title(ws, "Σ (erkannt)"), value=sum_points)
 
-        for idx, exercise_grade in enumerate(self.exercise_grades + [self.sum], start=len(self.grades()) + 3):
-            ExerciseGrades._write_image_to_cell(ws, exercise_grade.get_used_image(), target_row, idx)
+        first_exercise_cell = f"{column_letter_by_title(ws, 'A1')}{target_row}"
+        last_exercise_cell = f"{column_letter_by_title(ws, f'A{len(exercises_points)}')}{target_row}"
+        sum_formula = f"=SUM({first_exercise_cell}:{last_exercise_cell})"
+        ws.cell(row=target_row, column=column_index_by_title(ws, "Σ (von Worksheet berechnet)"), value=sum_formula)
 
+        sum_matches_formula = f"={column_letter_by_title(ws, 'Σ (erkannt)')}{target_row}={column_letter_by_title(ws, 'Σ (von Worksheet berechnet)')}{target_row}"
+        ws.cell(row=target_row, column=column_index_by_title(ws, "Σ==Σ?"), value=sum_matches_formula)
 
+        for idx, exercise_grade in enumerate(self.exercise_grades, start=column_index_by_title(ws, 'A1-Bild')):
+            write_image_to_cell(ws, exercise_grade.get_used_image(), target_row, idx)
+        write_image_to_cell(ws, self.sum.get_used_image(), target_row, column_index_by_title(ws, 'Σ-Bild'))

@@ -198,6 +198,11 @@ def grades_from_video(video_path: str):
 
     wb = openpyxl.Workbook()
     ws = wb.active
+    number_of_fields = len(exams[0].grades())
+    header_line = ["Matrikelnummer"] + [f"A{i}" for i in range(1, number_of_fields)] + ["Σ (erkannt)", "Σ (von Worksheet berechnet)", "Σ==Σ?"] + [f"A{i}-Bild" for i in range(1, number_of_fields)] + ["Σ-Bild"]
+    for i, header in enumerate(header_line, start=1):
+        ws.cell(row=1, column=i, value=header)
+
     for eg in exams:
         eg.write_line(ws)
     wb.save("/tmp/grades.xlsx") # todo path as argument
