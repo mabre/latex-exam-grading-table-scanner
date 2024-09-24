@@ -1,6 +1,6 @@
 import time
 from pathlib import Path
-from typing import Optional, Dict, Tuple
+from typing import Optional, Dict, Tuple, Callable
 
 import cv2
 import cv2.aruco as aruco
@@ -15,6 +15,18 @@ ACHIEVABLE_POINTS = [9, 7, 13, 12, 4, 7, 12, 26]
 qreader = QReader(min_confidence=.4)
 
 
+def log_execution_time(func: Callable):
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        print(f"Execution time for {func.__name__}: {elapsed_time:.4f} seconds")
+        return result
+    return wrapper
+
+
+@log_execution_time
 def extract_frames(video_path: str) -> Dict[int, np.array]:
     cap = cv2.VideoCapture(video_path)
     relevant_frames = {}
@@ -169,11 +181,7 @@ def debug_draw_aruco_markers(corners, ids, image):
 
 
 def grades_from_video(video_path: str):
-    start_time = time.time()
     frames = extract_frames(video_path)
-    end_time = time.time()
-    elapsed_time = end_time - start_time
-    print(f"Time taken to extract frames: {elapsed_time} seconds")
     for student_number, image in frames.items():
         # debug_display_image(image)
         de_skew_and_crop_image(image, "/tmp/grades.png")
@@ -181,6 +189,7 @@ def grades_from_video(video_path: str):
         eg.write_training_images(Path("corpus"))
         eg.write_sum(Path("check_sum"))
         print(eg)
+
 
 if __name__ == "__main__":
     # TODO logger
