@@ -132,7 +132,7 @@ class ExerciseGrade:
 
         digits, p = next(filter(lambda ns_p: build_number(ns_p[0]) <= self.max_value,
                     get_combinations_with_probabilities(detection_results)), 0)
-        return build_number(digits)
+        return build_number(digits) # TODO den Wahrscheinlichkeitskram müssten wir eine Ebene höher mit den Summen nochmal machen; da dann aber das wahrscheinlichste zurückgeben, falls nichts passt; und nicht alle nach oben durchreichen, nur die top10 und mind. 0.001 oder so; die Summe hat potentiell auch verschiedene Kandidatis; nicht zu viel probieren, sonst ist der Checksummen-Charakter weg! einmal schauen, was da für w'keiten rauskommen
 
 
     def get_used_image(self) -> np.array:
@@ -144,6 +144,7 @@ class ExerciseGrades:
     def __init__(self, image_path: str, achievable_points: List[float], student_number: int):
         self.student_number = student_number
         self._get_cells(image_path, achievable_points)
+        self._grades = self._predict_grades()
 
     def _get_cells(self, image_path: str, achievable_points: List[float]):
         image = cv2.imread(image_path)
@@ -166,26 +167,31 @@ class ExerciseGrades:
 
         self.sum = ExerciseGrade(sum(achievable_points), slices[-number_of_sum_cells(achievable_points):])
 
-    def grades(self) -> List[float]:
-        exercise_grades = [exercise_grade.detect_number() for exercise_grade in self.exercise_grades]
-        detected_sum = self.sum.detect_number()
-        if sum(exercise_grades) != detected_sum:
+    def _predict_grades(self) -> List[float]:
+        self.predicted_grades = [exercise_grade.detect_number() for exercise_grade in self.exercise_grades]
+        self.predicted_sum = self.sum.detect_number()
+        self.preducted_sum_matches = sum(self.predicted_grades) == self.predicted_sum
+        if not self.preducted_sum_matches:
             print("TODO: sum not matching")
-        return exercise_grades + [detected_sum]
+        return self.predicted_grades + [self.predicted_sum]
+
+    def grades(self) -> List[float]:
+        return self._grades
 
     def __repr__(self) -> str:
-        return str(self.student_number) + "," + ",".join([str(grade) for grade in self.grades()])
+        return str(self.student_number) + "," + ",".join([str(grade) for grade in self.grades()]) + "," + str(self.preducted_sum_matches)
 
     def write_training_images(self, directory: Path) -> None:
-        for idx, exercise_grade in enumerate([self.sum] + self.exercise_grades):
+        for idx, exercise_grade in enumerate(self.exercise_grades + [self.sum]):
             for cell_idx, cell in enumerate(exercise_grade.cells):
                 image = cell.primary_image
                 if exercise_grade.use_secondary():
                     image = cell.secondary_image
                 if not Cell.is_empty(image):
-                    cv2.imwrite(directory / f"{self.student_number}_{idx}_{cell_idx}.png", image)
+                    cv2.imwrite(directory / f"{self.student_number}_{idx+1}_{cell_idx}.png", image)
 
     def write_sum(self, directory: Path) -> None:
         cv2.imwrite(directory / f"{self.sum.detect_number():05.1f}_{self.student_number}.png",
                     self.sum.get_used_image())
+        # TODO write _all_ cells to export xlsx for validation
 
