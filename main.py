@@ -58,7 +58,7 @@ def extract_frames(video_path: str) -> Dict[int, np.array]:
             futures.append(future)
             frame_number += 1
 
-        for future in concurrent.futures.as_completed(futures):
+        for future in futures:
             result = future.result()
             if result:
                 student_number, frame = result
@@ -204,7 +204,7 @@ def grades_from_video(video_path: str):
 
     # todo extract functions
     exams = []
-    for student_number, image in frames.items():
+    for student_number, image in sorted(frames.items()):
         # debug_display_image(image)
         de_skew_and_crop_image(image, "/tmp/grades.png") # todo proper temp file
         eg = ExerciseGrades("/tmp/grades.png", ACHIEVABLE_POINTS, student_number)
@@ -214,6 +214,7 @@ def grades_from_video(video_path: str):
     for eg in exams:
         eg.write_training_images(Path("corpus"))
 
+    # TODO extract function
     wb = openpyxl.Workbook()
     ws = wb.active
     number_of_fields = len(exams[0].grades())
