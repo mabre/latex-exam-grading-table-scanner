@@ -62,16 +62,17 @@ def extract_frames(video_path: str) -> Dict[int, np.array]:
 
 
 def student_number_from_qr_code(image: np.array) -> Optional[int]:
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    binary = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
 
-    decoded_test = qreader.detect_and_decode(image)
+    qr_decoder = cv2.QRCodeDetector()
+    data, points, _ = qr_decoder.detectAndDecode(binary)
 
-    # Check if any QR codes were detected
-    if len(decoded_test) == 1 and decoded_test[0] is not None and decoded_test[0].isnumeric():
-        print(f"QR Code Data: {decoded_test}")
-        return int(decoded_test[0])
+    if points is not None and data.isnumeric():
+        print(f"QR Code Data: {data}")
+        return int(data)
     else:
-        print("No QR codes found")
+        print("No QR codes found or data is not numeric")
         return None
 
 
