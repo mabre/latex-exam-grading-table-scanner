@@ -45,6 +45,8 @@ def extract_frames(video_path: str) -> Dict[int, np.array]:
             student_number = student_number_from_qr_code(frame)
             if student_number is not None:
                 print(f"Found student number {student_number} and all aruco markers in frame {frame_number}")
+                # for debugging purposes: save all frames
+                # relevant_frames[student_number * 100_000 + frame_number] = frame
                 if previous_student_number != student_number and previous_student_number is not None:
                     relevant_frames[previous_student_number] = new_frames[len(new_frames) // 2]
                     new_frames = []
@@ -210,4 +212,4 @@ def grades_from_video(video_path: str):
 
 if __name__ == "__main__":
     # TODO logger
-    grades_from_video("/home/markus/Dokument/git/lehre/klausurscanner/test/resources/VID_20240923_102406.mp4")
+    grades_from_video("test/resources/VID_20240923_180600.mp4")

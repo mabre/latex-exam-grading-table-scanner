@@ -109,7 +109,8 @@ class ExerciseGrade:
     def use_secondary(self) -> bool:
         return any([not cell.secondary_is_empty() for cell in self.cells])
 
-    def detect_number(self) -> float:
+    def detect_number(self) -> List[Tuple[float, float]]:
+        """sorted List of detected number and probability pairs; most probable detection first"""
         def build_number(digits: List[int]) -> float:
             number = 0
             for digit in digits:
@@ -132,9 +133,12 @@ class ExerciseGrade:
 
         detection_results = [cell.detect_number(self.use_secondary()) for cell in self.cells]
 
-        digits, p = next(filter(lambda ns_p: build_number(ns_p[0]) <= self.max_value,
-                    get_combinations_with_probabilities(detection_results)), 0)
-        return build_number(digits) # TODO den Wahrscheinlichkeitskram müssten wir eine Ebene höher mit den Summen nochmal machen; da dann aber das wahrscheinlichste zurückgeben, falls nichts passt; und nicht alle nach oben durchreichen, nur die top10 und mind. 0.001 oder so; die Summe hat potentiell auch verschiedene Kandidatis; nicht zu viel probieren, sonst ist der Checksummen-Charakter weg! einmal schauen, was da für w'keiten rauskommen
+        probabilities = get_combinations_with_probabilities(detection_results)
+        result = [(build_number(digits), p) for digits, p in probabilities if p > 0.1][:5]
+        if len(result) == 0:
+            print("TODO: no good match found")
+            return [(build_number(probabilities[0][0]), probabilities[0][1])]
+        return result
 
 
     def get_used_image(self) -> np.array:
@@ -173,9 +177,33 @@ class ExerciseGrades:
 
         self.sum = ExerciseGrade(sum(achievable_points), slices[-number_of_sum_cells(achievable_points):])
 
+
     def _predict_grades(self) -> List[float]:
-        self.predicted_grades = [exercise_grade.detect_number() for exercise_grade in self.exercise_grades]
-        self.predicted_sum = self.sum.detect_number()
+
+        def get_combinations_with_probabilities(list_list: List[List[Tuple[float, float]]]) -> List[Tuple[List[float], float]]:
+            keys_combinations = list(product(*[list(map(lambda x: x[0], lst)) for lst in list_list]))
+
+            combinations_with_probabilities = []
+
+            for combination in keys_combinations:
+                probability = 1
+                for idx, key in enumerate(combination):
+                    probability *= next(p for k, p in list_list[idx] if k == key)
+                combinations_with_probabilities.append((list(combination), probability))
+
+            return sorted(combinations_with_probabilities, key=lambda ns_p: ns_p[1], reverse=True)
+
+        def best_result() -> List[float]:
+            detection_results = get_combinations_with_probabilities(
+                [exercise_grade.detect_number() for exercise_grade in self.exercise_grades + [self.sum]])
+            matching_detection_results = [(grades, p) for grades, p in detection_results if sum(grades[:-1]) == grades[-1]]
+            if len(matching_detection_results) > 0:
+                return matching_detection_results[0][0]
+            return detection_results[0][0]
+
+        prediction = best_result()
+        self.predicted_grades = prediction[:-1]
+        self.predicted_sum = prediction[-1]
         self.predicted_sum_matches = sum(self.predicted_grades) == self.predicted_sum
         if not self.predicted_sum_matches:
             print("TODO: sum not matching")
