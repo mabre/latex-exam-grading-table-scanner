@@ -78,7 +78,7 @@ def has_all_aruco_markers(image: np.array) -> bool:
     return len(corners) == 3
 
 
-def detect_aruco_markers(image: np.array) -> Tuple[Tuple, np.array]:
+def detect_aruco_markers(image: np.array) -> Tuple[Tuple, Optional[np.array]]:
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     # note: use https://chev.me/arucogen/ to generate markers
     aruco_dict = aruco.getPredefinedDictionary(aruco.DICT_4X4_50)
@@ -161,7 +161,7 @@ def rotate_image_by_aruco(image: np.array) -> Optional[Tuple[np.array, Tuple, Tu
 
     corners_after_rotation, ids_after_rotation = detect_aruco_markers(rotated_image)
 
-    if len(ids_after_rotation) != 3:
+    if len(corners_after_rotation) != 3:
         print("Not all ArUco markers detected after rotation, using transformed original markers instead")
 
         rotation_matrix = cv2.getRotationMatrix2D((image.shape[1] // 2, image.shape[0] // 2), angle, 1.0)
