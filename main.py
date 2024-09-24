@@ -1,3 +1,4 @@
+import concurrent
 import time
 from pathlib import Path
 from typing import Optional, Dict, Tuple, Callable
@@ -27,32 +28,45 @@ def log_execution_time(func: Callable):
     return wrapper
 
 
+def find_grading_table_and_student_number(frame_data: Tuple[int, np.array]) -> Optional[Tuple[int, np.array]]:
+    frame_number, frame = frame_data
+    if has_all_aruco_markers(frame):
+        student_number = student_number_from_qr_code(frame)
+        if student_number is not None:
+            print(f"Found student number {student_number} and all aruco markers in frame {frame_number}")
+            return student_number, frame
+    return None
+
+import concurrent.futures
+
 @log_execution_time
 def extract_frames(video_path: str) -> Dict[int, np.array]:
     cap = cv2.VideoCapture(video_path)
     relevant_frames = {}
     frame_number = 0
     previous_student_number = None
-    new_frames = [] # when finding multiple frames with the same student number, we take the frame in the middle (b/c other frames might contain fingers etc.)
-    while cap.isOpened():
-        ret, frame = cap.read()
-        if not ret:
-            break
-        # finding aruco markers is MUCH faster (factor 6) than finding QR codes
-        # furthermore, when aruco markers are found, an QR code is usually also detected (but not vice versa)
-        if has_all_aruco_markers(frame):
-            print("markers found")
-            student_number = student_number_from_qr_code(frame)
-            if student_number is not None:
-                print(f"Found student number {student_number} and all aruco markers in frame {frame_number}")
-                # for debugging purposes: save all frames
-                # relevant_frames[student_number * 100_000 + frame_number] = frame
+    new_frames = []
+    futures = []
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                break
+
+            future = executor.submit(find_grading_table_and_student_number, (frame_number, frame))
+            futures.append(future)
+            frame_number += 1
+
+        for future in concurrent.futures.as_completed(futures):
+            result = future.result()
+            if result:
+                student_number, frame = result
                 if previous_student_number != student_number and previous_student_number is not None:
                     relevant_frames[previous_student_number] = new_frames[len(new_frames) // 2]
                     new_frames = []
                 previous_student_number = student_number
                 new_frames.append(frame)
-        frame_number += 1
 
     if len(new_frames) > 0 and previous_student_number is not None and previous_student_number not in relevant_frames:
         relevant_frames[previous_student_number] = new_frames[len(new_frames) // 2]
