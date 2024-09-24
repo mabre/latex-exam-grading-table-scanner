@@ -2,6 +2,7 @@ import concurrent
 import time
 from pathlib import Path
 from typing import Optional, Dict, Tuple, Callable
+import concurrent.futures
 
 import cv2
 import cv2.aruco as aruco
@@ -28,16 +29,15 @@ def log_execution_time(func: Callable):
     return wrapper
 
 
-def find_grading_table_and_student_number(frame_data: Tuple[int, np.array]) -> Optional[Tuple[int, np.array]]:
+def find_grading_table_and_student_number(frame_data: Tuple[int, np.array]) -> Optional[Tuple[int, np.array, int]]:
     frame_number, frame = frame_data
     if has_all_aruco_markers(frame):
         student_number = student_number_from_qr_code(frame)
         if student_number is not None:
             print(f"Found student number {student_number} and all aruco markers in frame {frame_number}")
-            return student_number, frame
+            return student_number, frame, frame_number
     return None
 
-import concurrent.futures
 
 @log_execution_time
 def extract_frames(video_path: str) -> Dict[int, np.array]:
@@ -61,7 +61,9 @@ def extract_frames(video_path: str) -> Dict[int, np.array]:
         for future in futures:
             result = future.result()
             if result:
-                student_number, frame = result
+                student_number, frame, frame_number = result
+                # for debugging purposes: save all frames
+                # relevant_frames[student_number * 100_000 + frame_number] = frame
                 if previous_student_number != student_number and previous_student_number is not None:
                     relevant_frames[previous_student_number] = new_frames[len(new_frames) // 2]
                     new_frames = []
@@ -229,4 +231,5 @@ def grades_from_video(video_path: str):
 
 if __name__ == "__main__":
     # TODO logger
+    # TODO accept input Matrikelnummer liste and write empty lines where no data detected
     grades_from_video("test/resources/VID_20240923_180600.mp4")
