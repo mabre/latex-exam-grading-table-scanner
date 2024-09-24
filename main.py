@@ -213,7 +213,7 @@ def grades_from_video(video_path: str):
     write_to_xlsx(exams)
 
 
-def write_to_xlsx(exams):
+def write_to_xlsx(exams: list[ExerciseGrades]) -> None:
     wb = openpyxl.Workbook()
     ws = wb.active
 
