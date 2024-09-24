@@ -152,13 +152,12 @@ class ExerciseGrade:
 
 
 class ExerciseGrades:
-    def __init__(self, image_path: str, achievable_points: List[float], student_number: int):
+    def __init__(self, image: np.array, achievable_points: List[float], student_number: int):
         self.student_number = student_number
-        self._get_cells(image_path, achievable_points)
+        self._get_cells(image, achievable_points)
         self._grades = self._predict_grades()
 
-    def _get_cells(self, image_path: str, achievable_points: List[float]):
-        image = cv2.imread(image_path)
+    def _get_cells(self, image: np.array, achievable_points: List[float]):
         height, width, _ = image.shape
         total_cells = number_of_cells(achievable_points) + PADDING_CELLS_LEFT + PADDING_CELLS_RIGHT
         cell_width = width / total_cells
@@ -200,6 +199,7 @@ class ExerciseGrades:
             matching_detection_results = [(grades, p) for grades, p in detection_results if sum(grades[:-1]) == grades[-1]]
             if len(matching_detection_results) > 0:
                 return matching_detection_results[0][0]
+            print("todo sum not matching:", self.student_number, detection_results)
             return detection_results[0][0]
 
         prediction = best_result()

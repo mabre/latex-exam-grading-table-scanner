@@ -1,7 +1,7 @@
 import concurrent
 import time
 from pathlib import Path
-from typing import Optional, Dict, Tuple, Callable
+from typing import Optional, Dict, Tuple, Callable, List
 import concurrent.futures
 
 import cv2
@@ -121,7 +121,7 @@ def rotate_image(image: np.array, angle: float) -> np.array:
     rotated = cv2.warpAffine(image, M, (w, h))
     return rotated
 
-def de_skew_and_crop_image(image: np.array, output_path: str):
+def de_skew_and_crop_image(image: np.array) -> Optional[np.array]:
     rotated_image, corners, ids = rotate_image_by_aruco(image)
 
     if ids is not None and len(ids) >= 3:
@@ -160,10 +160,9 @@ def de_skew_and_crop_image(image: np.array, output_path: str):
         gray = cv2.cvtColor(de_skewed_image, cv2.COLOR_BGR2GRAY)
         binary = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
 
-        cv2.imwrite(output_path, binary)
-        print(f"De-skewed and cropped image saved to {output_path}")
+        return cv2.cvtColor(binary, cv2.COLOR_GRAY2RGB)
     else:
-        print(f"Not enough ArUco markers detected to crop the image: {len(corners)}")
+        return None
 
 
 def rotate_image_by_aruco(image: np.array) -> Optional[Tuple[np.array, Tuple, Tuple]]:
@@ -234,17 +233,23 @@ def write_to_xlsx(exams):
     wb.save("/tmp/grades.xlsx")  # todo path as argument
 
 
-def extract_grades(frames):
-    # todo extract functions
+@log_execution_time
+def extract_grades(frames: Dict[int, np.array]) -> List[ExerciseGrades]:
     exams = []
-    # todo parallelize + sort by student number; warnen, wenn zwei (nicht aufeinander folgende) Klausuren dieselbe Summe haben: komplett ausgeben zum Manuellen inspizieren
-    for student_number, image in sorted(frames.items()):
-        # debug_display_image(image)
-        de_skew_and_crop_image(image, "/tmp/grades.png")  # todo proper temp file
-        eg = ExerciseGrades("/tmp/grades.png", ACHIEVABLE_POINTS, student_number)
+
+    def process_frame(student_number: int, image: np.array) -> ExerciseGrades:
+        cropped = de_skew_and_crop_image(image)
+        eg = ExerciseGrades(cropped, ACHIEVABLE_POINTS, student_number)
         print(eg)
-        exams.append(eg)
-    return exams
+        return eg
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = [executor.submit(process_frame, student_number, image) for student_number, image in frames.items()]
+
+        for future in concurrent.futures.as_completed(futures):
+            exams.append(future.result())
+
+    return sorted(exams, key=lambda eg: eg.student_number)
 
 
 if __name__ == "__main__":
