@@ -199,6 +199,7 @@ class ExerciseGrades:
             detection_results = get_combinations_with_probabilities(
                 [exercise_grade.detect_number() for exercise_grade in self.exercise_grades + [self.sum]])
             matching_detection_results = [(grades, p) for grades, p in detection_results if sum(grades[:-1]) == grades[-1]]
+            # todo evaluate how often this actually improves the results or just makes the results look better (b/c of sum matching more often)
             if len(matching_detection_results) > 0:
                 return matching_detection_results[0][0]
             print("todo sum not matching:", self.student_number, detection_results)
