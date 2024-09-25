@@ -78,6 +78,12 @@ def merge_balanced(images_real: np.ndarray, labels_real: np.ndarray, images_augm
 
 
 if __name__ == '__main__':
+    gpus = tf.config.experimental.list_physical_devices('GPU')
+    if gpus:
+        print("Training on GPU")
+    else:
+        print("Training on CPU")
+    
     images_real, labels_real = load_train_images_and_labels(Path("../corpus/real_data"))
     images_augmented, labels_augmented = load_train_images_and_labels(Path("../corpus/UNCAT_AUGMENTED"))
 
@@ -175,7 +181,7 @@ if __name__ == '__main__':
 
 
     history = model.fit(
-        train_dataset, epochs=15, validation_data=val_dataset, callbacks=[checkpoint], steps_per_epoch=num_train_steps, validation_steps=num_val_steps
+        train_dataset, epochs=5, validation_data=val_dataset, callbacks=[checkpoint], steps_per_epoch=num_train_steps, validation_steps=num_val_steps
     )
 
     model.save("0-10-final.keras")
