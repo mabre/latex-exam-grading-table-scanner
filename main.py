@@ -139,11 +139,15 @@ def de_skew_and_crop_image(image: np.array) -> Optional[np.array]:
         x_lower_right = corners[id_2_index][0][3][0] # bottom left corner of ID 2
         y_lower_right = corners[id_2_index][0][3][1]
 
+        # Estimate the top-left corner
+        x_top_left = x_lower_left - (x_lower_right - x_upper_right)
+        y_top_left = y_upper_right - (y_lower_right - y_lower_left)
+
         src_points = np.array([
             [x_lower_left, y_lower_left],
             [x_upper_right, y_upper_right],
             [x_lower_right, y_lower_right],
-            [corners[id_0_index][0][1][0], y_upper_right],
+            [x_top_left, y_top_left],
         ], dtype="float32")
 
         # Define the destination points for the perspective transform
@@ -244,6 +248,7 @@ def extract_grades(frames: Dict[int, np.array]) -> List[ExerciseGrades]:
 
     def process_frame(student_number: int, image: np.array) -> ExerciseGrades:
         cropped = de_skew_and_crop_image(image)
+        cv2.imwrite(f"/tmp/gradingtable_{student_number}.png", cropped)
         eg = ExerciseGrades(cropped, ACHIEVABLE_POINTS, student_number)
         print(eg)
         return eg
