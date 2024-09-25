@@ -1,7 +1,7 @@
 # based on MA Mersch
 import os
 from pathlib import Path
-from typing import Tuple
+from typing import Tuple, Counter
 
 import cv2
 import numpy as np
@@ -50,8 +50,38 @@ def load_train_images_and_labels(dataset_path: Path) -> Tuple[np.ndarray, np.nda
 
     return np.array(images), np.array(labels)
 
+
+def merge_balanced(images_real: np.ndarray, labels_real: np.ndarray, images_augmented: np.ndarray, labels_augmented: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    """takes all real images and augmented images, but removes augmented images so that the dataset is balanced"""
+    real_labels_counter = Counter(labels_real)
+    imbalanced_class_counts = real_labels_counter + Counter(labels_augmented)
+    target_number_per_label = min(imbalanced_class_counts.values())
+
+    needed_augmented_samples = {label: target_number_per_label - real_labels_counter[label] for label in imbalanced_class_counts}
+
+    balanced_images = list(images_real)
+    balanced_labels = list(labels_real)
+
+    for label, count in needed_augmented_samples.items():
+        if count > 0:
+            class_images = images_augmented[labels_augmented == label][:count]
+            class_labels = labels_augmented[labels_augmented == label][:count]
+            balanced_images.extend(class_images)
+            balanced_labels.extend(class_labels)
+        else:
+            throw ValueError(f"label {label} has {count} samples too few, imbalanced data set! generate more augmented data!")
+
+    balanced_images = np.array(balanced_images)
+    balanced_labels = np.array(balanced_labels)
+
+    return balanced_images, balanced_labels
+
+
 if __name__ == '__main__':
-    images, labels = load_train_images_and_labels(Path("../corpus/UNCAT_AUGMENTED"))
+    images_real, labels_real = load_train_images_and_labels(Path("../corpus/real_data"))
+    images_augmented, labels_augmented = load_train_images_and_labels(Path("../corpus/UNCAT_AUGMENTED"))
+
+    images, labels = merge_balanced(images_real, labels_real, images_augmented, labels_augmented)
 
     train_images, test_images, train_labels, test_labels = train_test_split(
         images, labels, test_size=0.1

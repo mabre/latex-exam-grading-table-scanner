@@ -132,7 +132,7 @@ class ExerciseGrade:
                     probability *= dict_list[idx][key]
                 combinations_with_probabilities.append((list(combination), probability))
 
-            return sorted(combinations_with_probabilities, key=lambda ns_p: ns_p[1], reverse=True)
+            return sorted(combinations_with_probabilities, key=lambda ns_p: ns_p[1], reverse=True) # todo switch to disable, e.g. set [:1]
 
         detection_results = [cell.detect_number(self.use_secondary()) for cell in self.cells]
 
