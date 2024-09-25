@@ -33,6 +33,7 @@ def find_grading_table_and_student_number(frame_data: Tuple[int, np.array]) -> O
     frame_number, frame = frame_data
     if has_all_aruco_markers(frame):
         student_number = student_number_from_qr_code(frame)
+        print(f"Found all aruco markers in frame {frame_number}")
         if student_number is not None:
             print(f"Found student number {student_number} and all aruco markers in frame {frame_number}")
             return student_number, frame, frame_number
@@ -64,7 +65,7 @@ def extract_frames(video_path: str) -> Dict[int, np.array]:
             if result:
                 student_number, frame, frame_number = result
                 # for debugging purposes: save all frames
-                relevant_frames[student_number * 100_000 + frame_number] = frame
+                # relevant_frames[student_number * 100_000 + frame_number] = frame
                 if previous_student_number != student_number and previous_student_number is not None:
                     relevant_frames[previous_student_number] = new_frames[len(new_frames) // 2]
                     new_frames = []
@@ -121,24 +122,28 @@ def rotate_image(image: np.array, angle: float) -> np.array:
     rotated = cv2.warpAffine(image, M, (w, h))
     return rotated
 
+
 def de_skew_and_crop_image(image: np.array) -> Optional[np.array]:
     rotated_image, corners, ids = rotate_image_by_aruco(image)
 
     if ids is not None and len(ids) >= 3:
-        # Extract the corners of the markers with IDs 0 and 1
-        id_0_index = np.where(ids == 0)[0][0] # ID 0 = marker at the lower left of the table
-        id_1_index = np.where(ids == 1)[0][0] # ID 1 = marker at the upper right of the table
+        # Extract the corners of the markers with IDs 0, 1, and 2
+        id_0_index = np.where(ids == 0)[0][0]  # ID 0 = marker at the lower left of the table
+        id_1_index = np.where(ids == 1)[0][0]  # ID 1 = marker at the upper right of the table
+        id_2_index = np.where(ids == 2)[0][0]  # ID 2 = marker at the lower right of the table
 
-        min_x = corners[id_0_index][0][2][0] # bottom right corner of ID 0
-        max_y = corners[id_0_index][0][2][1]
-        max_x = corners[id_1_index][0][0][0] # top left corner of ID 1
-        min_y = corners[id_1_index][0][0][1]
+        x_lower_left = corners[id_0_index][0][2][0]  # bottom right corner of ID 0
+        y_lower_left = corners[id_0_index][0][2][1]
+        x_upper_right = corners[id_1_index][0][0][0] # top left corner of ID 1
+        y_upper_right = corners[id_1_index][0][0][1]
+        x_lower_right = corners[id_2_index][0][3][0] # bottom left corner of ID 2
+        y_lower_right = corners[id_2_index][0][3][1]
 
         src_points = np.array([
-            [min_x, max_y],
-            [max_x, min_y],
-            [max_x, max_y],
-            [min_x, min_y],
+            [x_lower_left, y_lower_left],
+            [x_upper_right, y_upper_right],
+            [x_lower_right, y_lower_right],
+            [corners[id_0_index][0][1][0], y_upper_right],
         ], dtype="float32")
 
         # Define the destination points for the perspective transform
@@ -204,7 +209,7 @@ def debug_draw_aruco_markers(corners, ids, image):
 def grades_from_video(video_path: str):
     frames = extract_frames(video_path)
 
-    exams = extract_grades(frames)
+    exams = extract_grades(frames) # todo ubiquitous language + glossary
 
     for eg in exams:
         eg.write_training_images(Path("corpus"))
@@ -255,4 +260,4 @@ def extract_grades(frames: Dict[int, np.array]) -> List[ExerciseGrades]:
 if __name__ == "__main__":
     # TODO logger
     # TODO accept input Matrikelnummer liste and write empty lines where no data detected
-    grades_from_video("test/resources/VID_20240923_180600.mp4")
+    grades_from_video("test/resources/2024-09-25 09-21-50.mkv")
