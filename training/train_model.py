@@ -35,6 +35,11 @@ def preprocess_image(image: np.array) -> np.array:
 
 
 def load_train_images_and_labels(dataset_path: Path) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    returns images and labels for all images in the dataset
+
+    The path is expected to have subfolders for each digit, which contain 64x64 png images
+    """
     images = []
     labels = []
 
@@ -69,7 +74,7 @@ def merge_balanced(images_real: np.ndarray, labels_real: np.ndarray, images_augm
             balanced_images.extend(class_images)
             balanced_labels.extend(class_labels)
         else:
-            throw ValueError(f"label {label} has {count} samples too few, imbalanced data set! generate more augmented data!")
+            raise ValueError(f"label {label} has {count} samples too few, imbalanced data set! generate more augmented data!")
 
     balanced_images = np.array(balanced_images)
     balanced_labels = np.array(balanced_labels)
@@ -77,38 +82,26 @@ def merge_balanced(images_real: np.ndarray, labels_real: np.ndarray, images_augm
     return balanced_images, balanced_labels
 
 
-if __name__ == '__main__':
-    gpus = tf.config.experimental.list_physical_devices('GPU')
-    if gpus:
-        print("Training on GPU")
-    else:
-        print("Training on CPU")
-    
-    images_real, labels_real = load_train_images_and_labels(Path("../corpus/real_data"))
-    images_augmented, labels_augmented = load_train_images_and_labels(Path("../corpus/UNCAT_AUGMENTED"))
-
+def load_data(real_data_path: Path, augmented_data_path: Path) -> Tuple[np.array, np.array, np.array, np.array]:
+    images_real, labels_real = load_train_images_and_labels(real_data_path)
+    images_augmented, labels_augmented = load_train_images_and_labels(augmented_data_path)
     images, labels = merge_balanced(images_real, labels_real, images_augmented, labels_augmented)
-
     train_images, test_images, train_labels, test_labels = train_test_split(
         images, labels, test_size=0.1
     )
-
     train_images = train_images.reshape(train_images.shape[0], DIGIT_IMAGE_SIZE, DIGIT_IMAGE_SIZE, 1)
     test_images = test_images.reshape(test_images.shape[0], DIGIT_IMAGE_SIZE, DIGIT_IMAGE_SIZE, 1)
+    return train_images, train_labels, test_images, test_labels
 
 
-    num_train_steps = len(train_images) // BATCH_SIZE
-    num_val_steps = len(test_images) // BATCH_SIZE
-
-
-    def data_generator(images, labels, batch_size):
+def generate_datasets(train_images: np.array, train_labels: np.array, test_images: np.array, test_labels: np.array) -> Tuple[tf.data.Dataset, tf.data.Dataset]:
+    def data_generator(images: np.array, labels: np.array, batch_size: int):
         num_samples = len(images)
         while True:
             indices = np.random.choice(num_samples, size=batch_size, replace=False)
             batch_images = images[indices]
             batch_labels = labels[indices]
             yield batch_images, batch_labels
-
 
     train_dataset = tf.data.Dataset.from_generator(
         lambda: data_generator(train_images, train_labels, BATCH_SIZE),
@@ -124,10 +117,10 @@ if __name__ == '__main__':
             tf.TensorSpec(shape=(BATCH_SIZE,), dtype=tf.float32),
         ),
     ).repeat()
+    return train_dataset, val_dataset
 
 
-    # model.add(Lambda(standardize,input_shape=(28,28,1)))
-    #
+def generate_model() -> Sequential:
     model = Sequential()
     model.add(
         Conv2D(
@@ -138,30 +131,22 @@ if __name__ == '__main__':
         )
     )
     model.add(Conv2D(filters=64, kernel_size=(3, 3), activation="relu"))
-
     model.add(MaxPooling2D(pool_size=(2, 2)))
     model.add(BatchNormalization())
     model.add(Conv2D(filters=128, kernel_size=(3, 3), activation="relu"))
     model.add(Conv2D(filters=128, kernel_size=(3, 3), activation="relu"))
-
     model.add(MaxPooling2D(pool_size=(2, 2)))
     model.add(BatchNormalization())
     model.add(Conv2D(filters=256, kernel_size=(3, 3), activation="relu"))
     model.add(Conv2D(filters=256, kernel_size=(3, 3), activation="relu"))
-
     model.add(MaxPooling2D(pool_size=(2, 2)))
     model.add(BatchNormalization())
     model.add(Conv2D(filters=512, kernel_size=(3, 3), activation="relu"))
-
     model.add(MaxPooling2D(pool_size=(2, 2)))
-
     model.add(Flatten())
     model.add(BatchNormalization())
     model.add(Dense(512, activation="relu"))
-
     model.add(Dense(10, activation="softmax"))
-
-
     model.compile(
         optimizer=tf.keras.optimizers.Adam(
             learning_rate=3e-5,
@@ -169,21 +154,36 @@ if __name__ == '__main__':
         loss="sparse_categorical_crossentropy",
         metrics=["accuracy"],
     )
-
     print(model.summary())
-    # Definiere den Pfad und den Dateinamen für das gespeicherte Modell
+    return model
+
+
+def main(real_data_path: Path, augmented_data_path: Path):
+    gpus = tf.config.experimental.list_physical_devices('GPU')
+    if gpus:
+        print("Training on GPU")
+    else:
+        print("Training on CPU")
+
+    train_images, train_labels, test_images, test_labels = load_data(real_data_path, augmented_data_path)
+    num_train_steps = len(train_images) // BATCH_SIZE
+    num_val_steps = len(test_images) // BATCH_SIZE
+
+    train_dataset, val_dataset = generate_datasets(train_images, train_labels, test_images, test_labels)
+
+    model = generate_model()
 
     checkpoint_path = "0-10-checkpoint.keras"
-    # Erstelle den Model Checkpoint
     checkpoint = ModelCheckpoint(
         checkpoint_path, monitor="val_loss", save_best_only=True, mode="min", verbose=1
     )
-
-
-    history = model.fit(
-        train_dataset, epochs=5, validation_data=val_dataset, callbacks=[checkpoint], steps_per_epoch=num_train_steps, validation_steps=num_val_steps
+    _history = model.fit(
+        train_dataset, epochs=5, validation_data=val_dataset, callbacks=[checkpoint], steps_per_epoch=num_train_steps,
+        validation_steps=num_val_steps
     )
 
     model.save("0-10-final.keras")
 
-    # TODO irgdein stand-alone tool für single-inference wär gut
+
+if __name__ == '__main__':
+    main(Path("../corpus/real_data"), Path("../corpus/UNCAT_AUGMENTED"))
