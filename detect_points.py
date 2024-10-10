@@ -1,3 +1,5 @@
+from log_setup import logger
+
 import concurrent
 import os
 import shutil
@@ -14,7 +16,6 @@ import numpy as np
 import openpyxl
 
 from GradingTable import GradingTable, debug_display_image
-from log_setup import logger
 
 
 def log_execution_time(func: Callable):

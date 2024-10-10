@@ -6,6 +6,7 @@ import cv2
 import numpy as np
 from openpyxl.worksheet.worksheet import Worksheet
 from tensorflow.keras.models import load_model
+from torch.fx.config import verbose_progress
 
 from WorksheetFunctions import column_index_by_title, column_letter_by_title, write_image_to_cell
 from constants import DIGIT_IMAGE_SIZE, ALLOWED_DIGITS_TENTHS
@@ -71,7 +72,7 @@ class DigitCell:
         # Reshape the image to match the model's input shape
         input_image = image.reshape(1, DIGIT_IMAGE_SIZE, DIGIT_IMAGE_SIZE, 1)
 
-        predictions = DigitCell.model.predict(input_image)[0]
+        predictions = DigitCell.model.predict(input_image, verbose=0)[0]
         allowed_predictions = {value: predictions[value] for value in self.allowed_values}
 
         # debug_display_image(image)
