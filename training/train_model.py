@@ -1,5 +1,6 @@
 # based on MA Mersch
 import os
+import sys
 from pathlib import Path
 from typing import Tuple, Counter
 
@@ -14,7 +15,7 @@ from keras.api.models import Sequential
 from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 
-from training.create_augmented_base_data_set import DIGIT_IMAGE_SIZE
+from constants import DIGIT_IMAGE_SIZE
 
 BATCH_SIZE = 128
 
@@ -45,7 +46,7 @@ def load_train_images_and_labels(dataset_path: Path) -> Tuple[np.ndarray, np.nda
 
     for digit in range(10):
         digit_path = dataset_path / str(digit)
-        for filename in tqdm(os.listdir(digit_path)[:10], desc=f"Loading digit {digit}"):
+        for filename in tqdm(os.listdir(digit_path), desc=f"Loading digit {digit}"):
             if filename.lower().endswith('.png'):
                 image_path = digit_path / filename
                 image = cv2.imread(str(image_path))
@@ -83,7 +84,11 @@ def merge_balanced(images_real: np.ndarray, labels_real: np.ndarray, images_augm
 
 
 def load_data(real_data_path: Path, augmented_data_path: Path) -> Tuple[np.array, np.array, np.array, np.array]:
-    images_real, labels_real = load_train_images_and_labels(real_data_path)
+    try:
+        images_real, labels_real = load_train_images_and_labels(real_data_path)
+    except FileNotFoundError:
+        print(f"[W] No real data found in {real_data_path}, using only augmented data")
+        images_real, labels_real = np.array([]), np.array([])
     images_augmented, labels_augmented = load_train_images_and_labels(augmented_data_path)
     images, labels = merge_balanced(images_real, labels_real, images_augmented, labels_augmented)
     train_images, test_images, train_labels, test_labels = train_test_split(
@@ -186,5 +191,8 @@ def main(real_data_path: Path, augmented_data_path: Path):
 
 
 if __name__ == '__main__':
-    # todo argument
-    main(Path("../corpus/real_data"), Path("../corpus/UNCAT_AUGMENTED"))
+    if len(sys.argv) != 3:
+        print(f"Usage: {sys.argv[0]} <real_data_path> <augmented_data_path>")
+        print("<real_data_path> may be an empty directory")
+        sys.exit(1)
+    main(Path(sys.argv[1]), Path(sys.argv[2]))

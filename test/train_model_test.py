@@ -28,3 +28,12 @@ def test_merge_balanced_throws_when_too_few_samples() -> None:
     labels_augmented = np.array([0, 0, 0, 1,  1,  1,  2,  2,  2,  3,  3,  3])
     with pytest.raises(ValueError, match="samples too few"):
         merge_balanced(images_real, labels_real, images_augmented, labels_augmented)
+
+
+def test_merge_balanced_works_with_empty_real_data() -> None:
+    images_real = np.array([])
+    labels_real = np.array([])
+    images_augmented = np.array([6, 7, 9, 10, 11, 12, 13, 14, 15, 16, 17])
+    labels_augmented = np.array([0, 0, 1,  1,  1,  2,  2,  2,  3,  3,  3])
+    images, labels = merge_balanced(images_real, labels_real, images_augmented, labels_augmented)
+    assert len(images) == 8

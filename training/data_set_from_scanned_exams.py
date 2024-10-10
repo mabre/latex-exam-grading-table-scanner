@@ -1,8 +1,9 @@
-import openpyxl
 import shutil
-import os
-from pathlib import Path
+import sys
 from datetime import datetime
+from pathlib import Path
+
+import openpyxl
 
 from WorksheetFunctions import column_index_by_title, column_indices_by_title
 
@@ -21,17 +22,17 @@ def read_grades_from_xlsx(xlsx_file_path: Path) -> dict:
     return grades
 
 def load_images(images_folder_path: Path) -> list:
-    return list(images_folder_path.glob("*.png"))
+    return list(images_folder_path.glob("*_*_*.png"))
 
 def copy_and_rename_images(images: list, grades: dict, base_path: Path):
     for image_path in images:
         parts = image_path.stem.split('_')
         matrikelnummer = int(parts[0])
-        a_number = int(parts[1])
+        exercise_number = int(parts[1])
         cell_number = int(parts[2])
 
         if matrikelnummer in grades:
-            grade = grades[matrikelnummer][a_number - 1]
+            grade = grades[matrikelnummer][exercise_number - 1]
             if cell_number == 0:
                 real_digit = int((grade // 10) % 10) # todo generalize to support 100.0
             elif cell_number == 1:
@@ -53,4 +54,7 @@ def main(xlsx_file_path_with_correct_grades: Path, images_folder_path: Path):
     copy_and_rename_images(images, grades, images_folder_path)
 
 if __name__ == '__main__':
-    main(Path("corpus/tbd_training/grades.xlsx"), Path("corpus/tbd_training/"))
+    if len(sys.argv) != 3:
+        print(f"Usage: {sys.argv[0]} <grades.xlsx> <images_folder>")
+        sys.exit(1)
+    main(Path(sys.argv[1]), Path(sys.argv[2]))

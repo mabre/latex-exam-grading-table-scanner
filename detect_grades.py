@@ -1,4 +1,7 @@
 import concurrent
+import os
+import shutil
+import sys
 import time
 from pathlib import Path
 from typing import Optional, Dict, Tuple, Callable, List
@@ -9,13 +12,10 @@ import cv2.aruco as aruco
 
 import numpy as np
 import openpyxl
-from qreader import QReader
 
 from ExerciseGrades import ExerciseGrades, debug_display_image
 
-ACHIEVABLE_POINTS = [9, 7, 13, 12, 4, 7, 12, 26]
-
-qreader = QReader(min_confidence=.4)
+ACHIEVABLE_POINTS = [9, 7, 13, 12, 4, 7, 12, 26] # TODO argument
 
 
 def log_execution_time(func: Callable):
@@ -210,7 +210,7 @@ def debug_draw_aruco_markers(corners, ids, image):
     cv2.destroyAllWindows()
 
 
-def grades_from_video(video_path: str):
+def grades_from_video(video_path: str, grades_xlsx_path: str) -> None:
     frames = extract_frames(video_path)
 
     exams = extract_grades(frames) # todo ubiquitous language + glossary
@@ -219,10 +219,10 @@ def grades_from_video(video_path: str):
         eg.write_training_images(Path("corpus"))
 
     # TODO extract function
-    write_to_xlsx(exams)
+    write_to_xlsx(exams, grades_xlsx_path)
 
 
-def write_to_xlsx(exams: list[ExerciseGrades]) -> None:
+def write_to_xlsx(exams: list[ExerciseGrades], grades_xlsx_path: str) -> None:
     wb = openpyxl.Workbook()
     ws = wb.active
 
@@ -239,6 +239,9 @@ def write_to_xlsx(exams: list[ExerciseGrades]) -> None:
     for eg in exams:
         eg.write_line(ws)
 
+    if os.path.exists(grades_xlsx_path):
+        shutil.copy(grades_xlsx_path, f"{grades_xlsx_path}~")
+
     wb.save("/tmp/grades.xlsx")  # todo path as argument
 
 
@@ -248,7 +251,7 @@ def extract_grades(frames: Dict[int, np.array]) -> List[ExerciseGrades]:
 
     def process_frame(student_number: int, image: np.array) -> ExerciseGrades:
         cropped = de_skew_and_crop_image(image)
-        cv2.imwrite(f"/tmp/gradingtable_{student_number}.png", cropped)
+        cv2.imwrite(f"corpus/gradingtable_{student_number}.png", cropped)
         eg = ExerciseGrades(cropped, ACHIEVABLE_POINTS, student_number)
         print(eg)
         return eg
@@ -263,6 +266,9 @@ def extract_grades(frames: Dict[int, np.array]) -> List[ExerciseGrades]:
 
 
 if __name__ == "__main__":
+    if len(sys.argv) != 3:
+        print(f"Usage: {sys.argv[0]} <video_path> <grades.xlsx>")
+        sys.exit(1)
     # TODO logger
     # TODO accept input Matrikelnummer liste and write empty lines where no data detected
-    grades_from_video("test/resources/2024-09-25 09-21-50.mkv")
+    grades_from_video(sys.argv[1], sys.argv[2])

@@ -8,7 +8,7 @@ from openpyxl.worksheet.worksheet import Worksheet
 from tensorflow.keras.models import load_model
 
 from WorksheetFunctions import column_index_by_title, column_letter_by_title, write_image_to_cell
-from training.create_augmented_base_data_set import DIGIT_IMAGE_SIZE
+from constants import DIGIT_IMAGE_SIZE
 
 EMPTY_THRESHOLD = 205
 

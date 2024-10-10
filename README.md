@@ -18,29 +18,40 @@ But we can create an artificial data set from other handwritten digits. To do so
 1. Download a handwritten digits data set, e.g. [from here](https://github.com/kensanata/numbers/tree/master/UNCATEGORIZED).
 2. Run the following command to create a new data set with random black lines around the digits:
 ```
-python training/create_augmented_data_set.py TODO
+PYTHONPATH=.:$PYHTONPATH python training/create_augmented_data_set.py /path/to/UNCATEGORIZED /corpus/UNCATEGORIZED_AUGMENTED
 ```
 
-The augmented data set will be written to TODO.
+The random black lines are taken from `resources/empty_frames/`. Those frames are also randomly distorted by the script.
 
-#### Using you own scanned digits
+The input directory must contain subfolders `0`, `1`, ..., `9` with images of handwritten digits. The resolution doesn't matter.
+
+The output is always a balanced (undersampled) data set (kinda for historical reasons; the training script will balance the data set anyway).
+
+#### Using your own scanned digits
 
 When using the tool, it automatically saves the scanned digits to `corpus/`. You can then use the following command to create a data set from these images:
 
 1. Make sure the grades.xlsx file contains the correct grades for the scanned images.
 2. Run:
 ```
-python training/data_set_from_scanned_digits.py TODO TODO
+PYTHONPATH=.:$PYHTONPATH python training/data_set_from_scanned_digits.py grades.xlsx corpus/
 ``` 
 
-The data set will be written to TODO.
+`corpus/` is expected to contain images named like `123456_3_0.png`, where
+* `123456` is the student number
+* `3` is the exercise number (`0` = sum)
+* `0` is the position of the cell, counting from left
+
+The data set will be written to subfolders `0`, `1`, ..., `9` in the input directory. The filenames are changed to timestamps; the reference to the student number is lost for privacy reasons.
 
 ### Training the model
 
-Make sure you have at leas the augmented data set. Then run
-```python
-python training/train_model.py TODO
+Make sure you have at least the augmented data set. Then run
+```bash
+PYTHONPATH=.:$PYHTONPATH python training/train_model.py corpus/real_data corpus/UNCAT_AUGMENTED
 ```
+
+The path corpus/real_data may be empty/non-existent if you only use the augmented data set.
 
 The model will be saved to `0-10-final.keras`.
 
@@ -52,7 +63,7 @@ The model will be saved to `0-10-final.keras`.
 pip install -r requirements.txt
 ```
 
-The exam cover sheets must look like this:
+Make sure you hava a trained model, i.e. a file `0-10-final.keras`.
 
 ### Layout of cover pages
 
@@ -69,13 +80,11 @@ We will (todo) provide a LaTeX template for the cover page.
 
 ### Running the tool
 
-Make sure you hava a trained model, i.e. a file `0-10-final.keras`.
-
 You need a video file with the exam cover pages.
 
 Run
 ```
-python main.py TODO TODO
+python detect_grades.py TODO TODO
 ```
 
 The tool will:

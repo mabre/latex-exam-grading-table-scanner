@@ -1,15 +1,15 @@
 import os
 import random
+import sys
 from pathlib import Path
 from tqdm import tqdm
 
 import cv2
 import numpy as np
 
-DIGIT_IMAGE_SIZE = 64
+from constants import DIGIT_IMAGE_SIZE
 
-# todo pass path as argument and pass around as parameter - problem when loaded as module
-EMPTY_FRAMES=[]#[cv2.imread("resources/empty_frames/" + filename) for filename in os.listdir("resources/empty_frames") if filename.lower().endswith('.png')]
+EMPTY_FRAMES=[cv2.imread("resources/empty_frames/" + filename) for filename in os.listdir("resources/empty_frames") if filename.lower().endswith('.png')]
 
 def scale_image_with_border(image: np.array, target_size: int = DIGIT_IMAGE_SIZE, min_scale: float = 0.4, max_scale: float = 1) -> np.array:
     """
@@ -87,7 +87,10 @@ def process_and_save_images(input_path: Path, output_path: Path):
                 cv2.imwrite(processed_image_path, final_image)
 
 if __name__ == '__main__':
+    if len(sys.argv) != 3:
+        print(f"Usage: {sys.argv[0]} <input_folder> <output_folder>")
+        sys.exit(1)
     random.seed(0)
     np.random.seed(0)
     # TODO path by parameters
-    process_and_save_images(Path('../../abschlussarbeiten/pa-mersch/numbers/UNCATEGORIZED'), Path('../corpus/UNCAT_AUGMENTED'))
+    process_and_save_images(Path(sys.argv[1]), Path(sys.argv[2]))
