@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-from detect_points import find_grading_table_and_student_number, detect_points
+from detect_points import find_grading_table_and_student_number, detect_points, extract_frames
 
 
 def test_find_grading_table_and_student_number() -> None:
@@ -18,3 +18,9 @@ def test_extract_grades() -> None:
     grading_table = grading_tables[0]
     assert grading_table.points() == [0.5, 7, 2, 1, 0.5, 1.5, 12, 19, 43.5]
     assert grading_table.predicted_sum_matches
+
+
+def test_extract_frames_from_video() -> None:
+    frames = extract_frames("test/resources/example_video.mkv")
+    assert len(frames) == 7
+    assert frames.keys() == {10110011, 10130013, 10150015, 10180018, 10190019, 10170017, 10200020}

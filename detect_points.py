@@ -78,6 +78,9 @@ def extract_frames(video_path: str) -> Dict[int, np.array]:
         relevant_frames[previous_student_number] = new_frames[len(new_frames) // 2]
 
     cap.release()
+
+    assert frame_number != 0, f"No frames found in video, is the path {video_path} correct?"
+
     return relevant_frames
 
 
