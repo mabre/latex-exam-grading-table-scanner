@@ -30,6 +30,10 @@ def log_execution_time(func: Callable):
 
 
 def find_grading_table_and_student_number(frame_data: Tuple[int, np.array]) -> Optional[Tuple[int, np.array, int]]:
+    """
+    :param frame_data: frane number and frame contents
+    :return: student number, frame contents and frame number, if all aruco markers and a qr code are found; None otherwise
+    """
     frame_number, frame = frame_data
     if has_all_aruco_markers(frame):
         student_number = student_number_from_qr_code(frame)
@@ -114,6 +118,7 @@ def calculate_rotation_angle(marker_position_1: np.array, marker_position_2: np.
     delta_x = marker_position_1[0][0] - marker_position_2[0][0]
     delta_y = marker_position_1[0][1] - marker_position_2[0][1]
     return np.degrees(np.arctan2(delta_y, delta_x))
+
 
 def rotate_image(image: np.array, angle: float) -> np.array:
     (h, w) = image.shape[:2]

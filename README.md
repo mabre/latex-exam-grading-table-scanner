@@ -70,11 +70,11 @@ Make sure you hava a trained model, i.e. a file `0-10-final.keras`.
 The tool expects the cover pages to look like this:
 - Somewhere is a qr code with the student number.
 - There is a grading table with handwritten grades:
-  - The table is surrounded by aruco markers.
+  - The table is surrounded by aruco markers. The vertical distance to the table must be one cell with. The upper or the lower edge, respectively, must be aligned with the table.
   - Each grade cell is divided into tens, ones, and tenths; the sum cell may have hundreds.
   - If a grade has to be corrected, the corrected grade is written underneath the cell.
 
-![Example cover page](resources/example_cover_page.png)
+![Example cover page](test/resources/example_cover_page.png)
 
 We will (todo) provide a LaTeX template for the cover page.
 
@@ -84,7 +84,7 @@ You need a video file with the exam cover pages.
 
 Run
 ```
-python detect_grades.py TODO TODO
+python detect_grades.py test/resources/VID_20240923_102406.mp4 /tmp/grades.xlsx
 ```
 
 The tool will:
