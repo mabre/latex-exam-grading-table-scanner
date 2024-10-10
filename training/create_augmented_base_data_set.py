@@ -92,5 +92,4 @@ if __name__ == '__main__':
         sys.exit(1)
     random.seed(0)
     np.random.seed(0)
-    # TODO path by parameters
     process_and_save_images(Path(sys.argv[1]), Path(sys.argv[2]))

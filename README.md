@@ -31,16 +31,16 @@ The output is always a balanced (undersampled) data set (kinda for historical re
 
 When using the tool, it automatically saves the scanned digits to `corpus/`. You can then use the following command to create a data set from these images:
 
-1. Make sure the grades.xlsx file contains the correct grades for the scanned images.
+1. Make sure the points.xlsx file contains the correct points for the scanned images.
 2. Run:
 ```
-PYTHONPATH=.:$PYHTONPATH python training/data_set_from_scanned_digits.py grades.xlsx corpus/
+PYTHONPATH=.:$PYHTONPATH python training/data_set_from_scanned_digits.py points.xlsx corpus/
 ``` 
 
 `corpus/` is expected to contain images named like `123456_3_0.png`, where
 * `123456` is the student number
-* `3` is the exercise number (`0` = sum)
-* `0` is the position of the cell, counting from left
+* `3` is the exercise number (1 indexed); the "exercise" number of the sum cell is the number of the last exercise plus 1
+* `0` is the position of the cell (0 indexed), counting from left to right
 
 The data set will be written to subfolders `0`, `1`, ..., `9` in the input directory. The filenames are changed to timestamps; the reference to the student number is lost for privacy reasons.
 
@@ -69,10 +69,10 @@ Make sure you hava a trained model, i.e. a file `0-10-final.keras`.
 
 The tool expects the cover pages to look like this:
 - Somewhere is a qr code with the student number.
-- There is a grading table with handwritten grades:
+- There is a grading table with handwritten points:
   - The table is surrounded by aruco markers. The vertical distance to the table must be one cell with. The upper or the lower edge, respectively, must be aligned with the table.
-  - Each grade cell is divided into tens, ones, and tenths; the sum cell may have hundreds.
-  - If a grade has to be corrected, the corrected grade is written underneath the cell.
+  - Each point cell is divided into tens, ones, and tenths; the sum cell may have hundreds.
+  - If points have to be corrected, the corrected points are written underneath.
 
 ![Example cover page](test/resources/example_cover_page.png)
 
@@ -84,17 +84,35 @@ You need a video file with the exam cover pages.
 
 Run
 ```
-python detect_grades.py test/resources/VID_20240923_102406.mp4 /tmp/grades.xlsx
+python detect_points.py test/resources/VID_20240923_102406.mp4 /tmp/points.xlsx 1,3,2
 ```
 
 The tool will:
 1. Look for all video frames with a qr code and all aruco markers.
 2. If multiple frames for the same student number are found, the tool will select the frame in the middle.
-3. The tool will extract the grades from the grading table and write results to a xlsx file.
+3. The tool will extract the points from the grading table and write results to a xlsx file. It considers the maximum achievable points (`1,3,2`) for each cell.
+    * If you allow digits other than 0 and 5 for the tenths cell, you have to change `ALLOWED_DIGITS_TENTHS` in `constants.py`.
 4. All detected cells will also be written to `corpus/` so you can generate your own training data to improve the model.
 
 After extraction, you should re-check the results in the xlsx file and correct any mistakes.
 
+
+## Ubiquitous language
+
+An exam *cover page* consists of the following elements:
+- *QR code*, containing the numeric, integer student number
+- three *aruco markers*, used to mark the position of the grading table, with the ids 0 (lower left), 1 (upper right) and 2 (lower right)
+- a grading table
+
+The *grading table* consists of *point cells* for each *exercise* with two lines: primary and secondary.
+The secondary lines is usually empty, but can be used to correct points in the primary line. The secondary line is used if something is written there, otherwise the primary line is used.
+
+Each point cell contains points (i.e. it may not be empty). Each point cell is divided into three parts: tens, ones, and tenths (called *digit cells*). The sum cell may contain hundreds.
+
+The exercise cells are 1-indexed from left to right; the sum cell has the index corresponding to the number of the last exercise plus 1.
+The digit cells within each exercise cell are 0-indexed from left to right.
+
+The software *detects* which handwritten numbers are written in the points cells. It considers the *achievable points*.  
 
 ## Todos
 

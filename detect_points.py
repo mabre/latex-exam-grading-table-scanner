@@ -13,9 +13,7 @@ import cv2.aruco as aruco
 import numpy as np
 import openpyxl
 
-from ExerciseGrades import ExerciseGrades, debug_display_image
-
-ACHIEVABLE_POINTS = [9, 7, 13, 12, 4, 7, 12, 26] # TODO argument
+from GradingTable import GradingTable, debug_display_image
 
 
 def log_execution_time(func: Callable):
@@ -155,20 +153,17 @@ def de_skew_and_crop_image(image: np.array) -> Optional[np.array]:
             [x_top_left, y_top_left],
         ], dtype="float32")
 
-        # Define the destination points for the perspective transform
         width = max(np.linalg.norm(src_points[0] - src_points[1]), np.linalg.norm(src_points[2] - src_points[3]))
         height = max(np.linalg.norm(src_points[0] - src_points[3]), np.linalg.norm(src_points[1] - src_points[2]))
-        dst_points = np.array([
+        destination_points = np.array([
             [0, height - 1],
             [width - 1, 0],
             [width - 1, height - 1],
             [0, 0]
         ], dtype="float32")
 
-        # Compute the perspective transform matrix
-        M = cv2.getPerspectiveTransform(src_points, dst_points)
+        M = cv2.getPerspectiveTransform(src_points, destination_points)
 
-        # Apply the perspective transform to de-skew and crop the image
         de_skewed_image = cv2.warpPerspective(rotated_image, M, (int(width), int(height)))
 
         gray = cv2.cvtColor(de_skewed_image, cv2.COLOR_BGR2GRAY)
@@ -215,23 +210,22 @@ def debug_draw_aruco_markers(corners, ids, image):
     cv2.destroyAllWindows()
 
 
-def grades_from_video(video_path: str, grades_xlsx_path: str) -> None:
+def points_from_video(video_path: str, points_xlsx_path: str, achievable_points: list[int]) -> None:
     frames = extract_frames(video_path)
 
-    exams = extract_grades(frames) # todo ubiquitous language + glossary
+    exams = detect_points(frames, achievable_points)
 
     for eg in exams:
         eg.write_training_images(Path("corpus"))
 
-    # TODO extract function
-    write_to_xlsx(exams, grades_xlsx_path)
+    write_to_xlsx(exams, points_xlsx_path)
 
 
-def write_to_xlsx(exams: list[ExerciseGrades], grades_xlsx_path: str) -> None:
+def write_to_xlsx(exams: list[GradingTable], points_xlsx_path: str) -> None:
     wb = openpyxl.Workbook()
     ws = wb.active
 
-    number_of_fields = len(exams[0].grades())
+    number_of_fields = len(exams[0].points())
     exercise_headers = [f"A{i}" for i in range(1, number_of_fields)]
     sum_headers = ["Σ (erkannt)",
                   "Σ (von Worksheet berechnet)",
@@ -244,36 +238,36 @@ def write_to_xlsx(exams: list[ExerciseGrades], grades_xlsx_path: str) -> None:
     for eg in exams:
         eg.write_line(ws)
 
-    if os.path.exists(grades_xlsx_path):
-        shutil.copy(grades_xlsx_path, f"{grades_xlsx_path}~")
+    if os.path.exists(points_xlsx_path):
+        shutil.copy(points_xlsx_path, f"{points_xlsx_path}~")
 
-    wb.save("/tmp/grades.xlsx")  # todo path as argument
+    wb.save(points_xlsx_path)
 
 
 @log_execution_time
-def extract_grades(frames: Dict[int, np.array]) -> List[ExerciseGrades]:
-    exams = []
+def detect_points(cover_pages: Dict[int, np.array], achievable_points: list[int]) -> List[GradingTable]:
+    grading_tables = []
 
-    def process_frame(student_number: int, image: np.array) -> ExerciseGrades:
+    def process_cover_page(student_number: int, image: np.array) -> GradingTable:
         cropped = de_skew_and_crop_image(image)
         cv2.imwrite(f"corpus/gradingtable_{student_number}.png", cropped)
-        eg = ExerciseGrades(cropped, ACHIEVABLE_POINTS, student_number)
-        print(eg)
-        return eg
+        grading_table = GradingTable(cropped, achievable_points, student_number)
+        print(grading_table)
+        return grading_table
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        futures = [executor.submit(process_frame, student_number, image) for student_number, image in frames.items()]
+        futures = [executor.submit(process_cover_page, student_number, image) for student_number, image in cover_pages.items()]
 
         for future in concurrent.futures.as_completed(futures):
-            exams.append(future.result())
+            grading_tables.append(future.result())
 
-    return sorted(exams, key=lambda eg: eg.student_number)
+    return sorted(grading_tables, key=lambda eg: eg.student_number)
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        print(f"Usage: {sys.argv[0]} <video_path> <grades.xlsx>")
+    if len(sys.argv) != 2:
+        print(f"Usage: {sys.argv[0]} <video_path> <grades.xlsx> <achievable grades>")
         sys.exit(1)
     # TODO logger
     # TODO accept input Matrikelnummer liste and write empty lines where no data detected
-    grades_from_video(sys.argv[1], sys.argv[2])
+    points_from_video(sys.argv[1], sys.argv[2], [int(p) for p in sys.argv[3].split(",")])
