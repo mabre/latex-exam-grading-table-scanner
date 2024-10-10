@@ -44,7 +44,7 @@ def copy_and_rename_images(images: list[Path], points: dict, base_path: Path):
 
 def digit(cell_number: int, points: float) -> int:
     if cell_number == 0:
-        real_digit = int((points // 10) % 10)  # todo generalize to support 100.0
+        real_digit = int((points // 10) % 10)
     elif cell_number == 1:
         real_digit = int(points % 10)
     elif cell_number == 2:

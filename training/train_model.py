@@ -22,7 +22,6 @@ BATCH_SIZE = 128
 
 def preprocess_image(image: np.array) -> np.array:
     """converts to grayscale, resizes, pads to target size"""
-    # TODO remove from Cell class
     height, width = image.shape[:2]
     if height > width:
         padding = (height - width) // 2

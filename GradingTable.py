@@ -88,7 +88,6 @@ class PointsCell:
         self.max_value = max_value
 
         self.digit_cells = []
-        # TODO support für dreistellig; braucht Tests;
         if len(images) != 3:
             raise NotImplementedError("Only 3 cells are supported")
         for idx, image in enumerate(images):
