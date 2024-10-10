@@ -9,6 +9,7 @@ from tensorflow.keras.models import load_model
 
 from WorksheetFunctions import column_index_by_title, column_letter_by_title, write_image_to_cell
 from constants import DIGIT_IMAGE_SIZE, ALLOWED_DIGITS_TENTHS
+from log_setup import logger
 from training.train_model import preprocess_image
 
 EMPTY_THRESHOLD = 205
@@ -134,7 +135,7 @@ class PointsCell:
         probabilities = get_combinations_with_probabilities(detection_results)
         result = [(build_number(digits), p) for digits, p in probabilities if p > 0.1][:5]
         if len(result) == 0:
-            print("TODO: no good match found")
+            logger.debug(f"no good combination found, using best guess {probabilities}")
             return [(build_number(probabilities[0][0]), probabilities[0][1])]
         return result
 
@@ -203,7 +204,7 @@ class GradingTable:
             # todo evaluate how often this actually improves the results or just makes the results look better (b/c of sum matching more often)
             if len(matching_detection_results) > 0:
                 return matching_detection_results[0][0]
-            print("todo sum not matching:", self.student_number, detection_results)
+            logger.debug(f"Sum not matching for {self.student_number}, detected candidates: {detection_results}")
             return detection_results[0][0]
 
         prediction = best_result()
@@ -211,7 +212,7 @@ class GradingTable:
         self.predicted_sum = prediction[-1]
         self.predicted_sum_matches = sum(self.predicted_points) == self.predicted_sum
         if not self.predicted_sum_matches:
-            print("TODO: sum not matching")
+            logger.info(f"Sum not matching for {self.student_number}, detection: {prediction}")
         return self.predicted_points + [self.predicted_sum]
 
     def points(self) -> List[float]:

@@ -14,6 +14,7 @@ import numpy as np
 import openpyxl
 
 from GradingTable import GradingTable, debug_display_image
+from log_setup import logger
 
 
 def log_execution_time(func: Callable):
@@ -22,7 +23,7 @@ def log_execution_time(func: Callable):
         result = func(*args, **kwargs)
         end_time = time.time()
         elapsed_time = end_time - start_time
-        print(f"Execution time for {func.__name__}: {elapsed_time:.4f} seconds")
+        logger.info(f"Execution time for {func.__name__}: {elapsed_time:.4f} seconds")
         return result
     return wrapper
 
@@ -35,9 +36,9 @@ def find_grading_table_and_student_number(frame_data: Tuple[int, np.array]) -> O
     frame_number, frame = frame_data
     if has_all_aruco_markers(frame):
         student_number = student_number_from_qr_code(frame)
-        print(f"Found all aruco markers in frame {frame_number}")
+        logger.debug(f"Found all aruco markers in frame {frame_number}")
         if student_number is not None:
-            print(f"Found student number {student_number} and all aruco markers in frame {frame_number}")
+            logger.debug(f"Found student number {student_number} and all aruco markers in frame {frame_number}")
             return student_number, frame, frame_number
     return None
 
@@ -92,10 +93,10 @@ def student_number_from_qr_code(image: np.array) -> Optional[int]:
     data, points, _ = qr_decoder.detectAndDecode(binary)
 
     if points is not None and data.isnumeric():
-        print(f"QR Code Data: {data}")
+        logger.debug(f"QR Code Data: {data}")
         return int(data)
     else:
-        print("No QR codes found or data is not numeric")
+        logger.debug("No QR codes found or data is not numeric")
         return None
 
 
@@ -181,7 +182,7 @@ def rotate_image_by_aruco(image: np.array) -> Optional[Tuple[np.array, Tuple, Tu
     corners, ids = detect_aruco_markers(image)
 
     if len(corners) != 3:
-        print(f"Not enough ArUco markers detected to de-skew the image: {len(corners)}")
+        logger.debug(f"Not enough ArUco markers detected to de-skew the image: {len(corners)}")
         return
 
     # Extract the corners of the markers with IDs 0 and 1
@@ -189,12 +190,12 @@ def rotate_image_by_aruco(image: np.array) -> Optional[Tuple[np.array, Tuple, Tu
     id_2_index = np.where(ids == 2)[0][0]  # ID 2 = marker at the lower right of the table
     angle = calculate_rotation_angle(corners[id_0_index][0], corners[id_2_index][0])
     rotated_image = rotate_image(image, angle)
-    print(f"Rotated image by {angle} degrees")
+    logger.debug(f"Rotated image by {angle} degrees")
 
     corners_after_rotation, ids_after_rotation = detect_aruco_markers(rotated_image)
 
     if len(corners_after_rotation) != 3:
-        print("Not all ArUco markers detected after rotation, using transformed original markers instead")
+        logger.debug("Not all ArUco markers detected after rotation, using transformed original markers instead")
 
         rotation_matrix = cv2.getRotationMatrix2D((image.shape[1] // 2, image.shape[0] // 2), angle, 1.0)
         new_corners = []
@@ -255,7 +256,7 @@ def detect_points(cover_pages: Dict[int, np.array], achievable_points: list[int]
         cropped = de_skew_and_crop_image(image)
         cv2.imwrite(f"corpus/gradingtable_{student_number}.png", cropped)
         grading_table = GradingTable(cropped, achievable_points, student_number)
-        print(grading_table)
+        # print(grading_table)
         return grading_table
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -268,9 +269,8 @@ def detect_points(cover_pages: Dict[int, np.array], achievable_points: list[int]
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
+    if len(sys.argv) != 4:
         print(f"Usage: {sys.argv[0]} <video_path> <grades.xlsx> <achievable grades>")
         sys.exit(1)
-    # TODO logger
     # TODO accept input Matrikelnummer liste and write empty lines where no data detected
     points_from_video(sys.argv[1], sys.argv[2], [int(p) for p in sys.argv[3].split(",")])

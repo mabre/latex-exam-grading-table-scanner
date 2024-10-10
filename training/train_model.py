@@ -16,6 +16,7 @@ from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 
 from constants import DIGIT_IMAGE_SIZE
+from log_setup import logger
 
 BATCH_SIZE = 128
 
@@ -86,7 +87,7 @@ def load_data(real_data_path: Path, augmented_data_path: Path) -> Tuple[np.array
     try:
         images_real, labels_real = load_train_images_and_labels(real_data_path)
     except FileNotFoundError:
-        print(f"[W] No real data found in {real_data_path}, using only augmented data")
+        logger.warn(f"[W] No real data found in {real_data_path}, using only augmented data")
         images_real, labels_real = np.array([]), np.array([])
     images_augmented, labels_augmented = load_train_images_and_labels(augmented_data_path)
     images, labels = merge_balanced(images_real, labels_real, images_augmented, labels_augmented)
@@ -158,16 +159,16 @@ def generate_model() -> Sequential:
         loss="sparse_categorical_crossentropy",
         metrics=["accuracy"],
     )
-    print(model.summary())
+    logger.info(model.summary())
     return model
 
 
 def main(real_data_path: Path, augmented_data_path: Path):
     gpus = tf.config.experimental.list_physical_devices('GPU')
     if gpus:
-        print("Training on GPU")
+        logger.info("Training on GPU")
     else:
-        print("Training on CPU")
+        logger.info("Training on CPU")
 
     train_images, train_labels, test_images, test_labels = load_data(real_data_path, augmented_data_path)
     num_train_steps = len(train_images) // BATCH_SIZE
