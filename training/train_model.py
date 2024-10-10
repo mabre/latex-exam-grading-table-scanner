@@ -45,7 +45,7 @@ def load_train_images_and_labels(dataset_path: Path) -> Tuple[np.ndarray, np.nda
 
     for digit in range(10):
         digit_path = dataset_path / str(digit)
-        for filename in tqdm(os.listdir(digit_path), desc=f"Loading digit {digit}"):
+        for filename in tqdm(os.listdir(digit_path)[:10], desc=f"Loading digit {digit}"):
             if filename.lower().endswith('.png'):
                 image_path = digit_path / filename
                 image = cv2.imread(str(image_path))
@@ -68,13 +68,13 @@ def merge_balanced(images_real: np.ndarray, labels_real: np.ndarray, images_augm
     balanced_labels = list(labels_real)
 
     for label, count in needed_augmented_samples.items():
-        if count > 0:
+        if count >= 0:
             class_images = images_augmented[labels_augmented == label][:count]
             class_labels = labels_augmented[labels_augmented == label][:count]
             balanced_images.extend(class_images)
             balanced_labels.extend(class_labels)
         else:
-            raise ValueError(f"label {label} has {count} samples too few, imbalanced data set! generate more augmented data!")
+            raise ValueError(f"label {label} has {abs(count)} samples too few, imbalanced data set! generate more augmented data!")
 
     balanced_images = np.array(balanced_images)
     balanced_labels = np.array(balanced_labels)
@@ -186,4 +186,5 @@ def main(real_data_path: Path, augmented_data_path: Path):
 
 
 if __name__ == '__main__':
+    # todo argument
     main(Path("../corpus/real_data"), Path("../corpus/UNCAT_AUGMENTED"))
