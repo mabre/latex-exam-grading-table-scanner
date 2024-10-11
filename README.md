@@ -84,13 +84,13 @@ You need a video file with the exam cover pages.
 
 Run
 ```
-python detect_points.py test/resources/VID_20240923_102406.mp4 /tmp/points.xlsx 1,3,2
+python detect_points.py test/resources/VID_20240923_102406.mp4 /tmp/points.xlsx 9,7,13,12,4,7,12,26
 ```
 
 The tool will:
 1. Look for all video frames with a qr code and all aruco markers.
 2. If multiple frames for the same student number are found, the tool will select the frame in the middle.
-3. The tool will extract the points from the grading table and write results to a xlsx file. It considers the maximum achievable points (`1,3,2`) for each cell.
+3. The tool will extract the points from the grading table and write results to a xlsx file. It considers the maximum achievable points (`9,7,13,12,4,7,12,26`) for each cell.
     * If you allow digits other than 0 and 5 for the tenths cell, you have to change `ALLOWED_DIGITS_TENTHS` in `constants.py`.
 4. All detected cells will also be written to `corpus/` so you can generate your own training data to improve the model.
 

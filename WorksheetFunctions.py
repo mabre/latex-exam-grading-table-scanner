@@ -1,4 +1,5 @@
 import re
+import tempfile
 from typing import List
 
 import cv2
@@ -9,9 +10,9 @@ from openpyxl.worksheet.worksheet import Worksheet
 
 
 def write_image_to_cell(ws: Worksheet, image_array: np.array, row: int, col: int):
-    path = f"/tmp/__image_{row}_{col}.png"
-    cv2.imwrite(path, image_array)  # todo use proper temp path
-    img = Image(path)
+    with tempfile.NamedTemporaryFile(prefix="scantool_", suffix=".png", delete=False) as tmp_file:
+        cv2.imwrite(tmp_file.name, image_array)
+        img = Image(tmp_file.name)
 
     old_height = img.height
     img.height = 20
@@ -34,7 +35,7 @@ def column_indices_by_title(ws: Worksheet, column_name_regex: str) -> List[int]:
     return [col for col in range(1, ws.max_column + 1) if pattern.match(ws.cell(row=1, column=col).value)]
 
 
-def column_letter_by_title(ws: Worksheet, column_name: str) -> int:
+def column_letter_by_title(ws: Worksheet, column_name: str) -> str:
     for col in range(1, ws.max_column + 1):
         if ws.cell(row=1, column=col).value == column_name:
             return get_column_letter(col)
