@@ -1,3 +1,5 @@
+from tqdm import tqdm
+
 from log_setup import logger
 
 import concurrent
@@ -53,18 +55,21 @@ def extract_frames(video_path: str) -> Dict[int, np.array]:
     previous_student_number = None
     new_frames = []
     futures = []
+    frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        while cap.isOpened():
-            ret, frame = cap.read()
-            if not ret:
-                break
+        with tqdm(total=frame_count, desc="Loading frames") as pbar:
+            while cap.isOpened():
+                ret, frame = cap.read()
+                if not ret:
+                    break
 
-            future = executor.submit(find_grading_table_and_student_number, (frame_number, frame))
-            futures.append(future)
-            frame_number += 1
+                future = executor.submit(find_grading_table_and_student_number, (frame_number, frame))
+                futures.append(future)
+                frame_number += 1
+                pbar.update(1)
 
-        for future in futures:
+        for future in tqdm(futures, desc="Detecting grading tables and qr codes"):
             result = future.result()
             if result:
                 student_number, frame, frame_number = result
@@ -263,7 +268,7 @@ def detect_points(cover_pages: Dict[int, np.array], achievable_points: list[int]
     with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = [executor.submit(process_cover_page, student_number, image) for student_number, image in cover_pages.items()]
 
-        for future in concurrent.futures.as_completed(futures):
+        for future in tqdm(concurrent.futures.as_completed(futures), desc="Detecting points"):
             grading_tables.append(future.result())
 
     return sorted(grading_tables, key=lambda eg: eg.student_number)
