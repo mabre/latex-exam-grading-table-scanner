@@ -18,6 +18,7 @@ import numpy as np
 import openpyxl
 
 from GradingTable import GradingTable, debug_display_image
+from training.train_model import make_square
 
 
 def log_execution_time(func: Callable):
@@ -64,6 +65,7 @@ def extract_frames(video_path: str) -> Dict[int, np.array]:
                 if not ret:
                     break
 
+                # find_grading_table_and_student_number((frame_number, frame))
                 future = executor.submit(find_grading_table_and_student_number, (frame_number, frame))
                 futures.append(future)
                 frame_number += 1
@@ -185,7 +187,9 @@ def de_skew_and_crop_image(image: np.array) -> Optional[np.array]:
 
 
 def rotate_image_by_aruco(image: np.array) -> Optional[Tuple[np.array, Tuple, Tuple]]:
-    corners, ids = detect_aruco_markers(image)
+    squared_image = make_square(image) # if the image is no square, the grading table might be cut off after rotating by 90 degrees
+
+    corners, ids = detect_aruco_markers(squared_image)
 
     if len(corners) != 3:
         logger.debug(f"Not enough ArUco markers detected to de-skew the image: {len(corners)}")
@@ -195,7 +199,7 @@ def rotate_image_by_aruco(image: np.array) -> Optional[Tuple[np.array, Tuple, Tu
     id_0_index = np.where(ids == 0)[0][0]  # ID 0 = marker at the lower left of the table
     id_2_index = np.where(ids == 2)[0][0]  # ID 2 = marker at the lower right of the table
     angle = calculate_rotation_angle(corners[id_0_index][0], corners[id_2_index][0])
-    rotated_image = rotate_image(image, angle)
+    rotated_image = rotate_image(squared_image, angle)
     logger.debug(f"Rotated image by {angle} degrees")
 
     corners_after_rotation, ids_after_rotation = detect_aruco_markers(rotated_image)
@@ -266,6 +270,7 @@ def detect_points(cover_pages: Dict[int, np.array], achievable_points: list[int]
         return grading_table
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
+        # [process_cover_page(student_number, image) for student_number, image in cover_pages.items()]
         futures = [executor.submit(process_cover_page, student_number, image) for student_number, image in cover_pages.items()]
 
         for future in tqdm(concurrent.futures.as_completed(futures), desc="Detecting points"):
