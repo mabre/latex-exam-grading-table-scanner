@@ -20,6 +20,7 @@ import openpyxl
 from GradingTable import GradingTable, debug_display_image
 from training.train_model import make_square
 
+NUM_ARUCO_MARKERS = 4
 
 def log_execution_time(func: Callable):
     def wrapper(*args, **kwargs):
@@ -112,7 +113,7 @@ def student_number_from_qr_code(image: np.array) -> Optional[int]:
 
 def has_all_aruco_markers(image: np.array) -> bool:
     corners, ids = detect_aruco_markers(image)
-    return len(corners) == 3
+    return len(corners) == NUM_ARUCO_MARKERS
 
 
 def resize(image: np.array, max_length: int) -> np.array:
@@ -151,27 +152,26 @@ def rotate_image(image: np.array, angle: float) -> np.array:
 def de_skew_and_crop_image(image: np.array) -> Optional[np.array]:
     rotated_image, corners, ids = rotate_image_by_aruco(image)
 
-    if ids is not None and len(ids) >= 3:
+    if ids is not None and len(ids) >= NUM_ARUCO_MARKERS:
         # Extract the corners of the markers with IDs 0, 1, and 2
-        id_0_index = np.where(ids == 0)[0][0]  # ID 0 = marker at the lower left of the table
-        id_1_index = np.where(ids == 1)[0][0]  # ID 1 = marker at the upper right of the table
-        id_2_index = np.where(ids == 2)[0][0]  # ID 2 = marker at the lower right of the table
+        id_0_index = np.where(ids == 0)[0][0]  # ID 0 = marker at the top left of the table
+        id_1_index = np.where(ids == 1)[0][0]  # ID 1 = marker at the bottom left of the table
+        id_2_index = np.where(ids == 2)[0][0]  # ID 2 = marker at the bottom right of the table
+        id_3_index = np.where(ids == 3)[0][0]  # ID 3 = marker at the top right of the table
 
-        x_lower_left = corners[id_0_index][0][2][0]  # bottom right corner of ID 0
-        y_lower_left = corners[id_0_index][0][2][1]
-        x_upper_right = corners[id_1_index][0][0][0] # top left corner of ID 1
-        y_upper_right = corners[id_1_index][0][0][1]
-        x_lower_right = corners[id_2_index][0][3][0] # bottom left corner of ID 2
-        y_lower_right = corners[id_2_index][0][3][1]
-
-        # Estimate the top-left corner
-        x_top_left = x_lower_left - (x_lower_right - x_upper_right)
-        y_top_left = y_upper_right - (y_lower_right - y_lower_left)
+        x_top_left = corners[id_0_index][0][2][0]  # bottom right corner of ID 0
+        y_top_left = corners[id_0_index][0][2][1]
+        x_bottom_left = corners[id_1_index][0][2][0]  # bottom right corner of ID 1
+        y_bottom_left = corners[id_1_index][0][2][1]
+        x_bottom_right = corners[id_2_index][0][3][0] # bottom left corner of ID 2
+        y_bottom_right = corners[id_2_index][0][3][1]
+        x_top_right = corners[id_3_index][0][0][0] # top left corner of ID 3
+        y_top_right = corners[id_3_index][0][0][1]
 
         src_points = np.array([
-            [x_lower_left, y_lower_left],
-            [x_upper_right, y_upper_right],
-            [x_lower_right, y_lower_right],
+            [x_bottom_left, y_bottom_left],
+            [x_top_right, y_top_right],
+            [x_bottom_right, y_bottom_right],
             [x_top_left, y_top_left],
         ], dtype="float32")
 
@@ -201,12 +201,12 @@ def rotate_image_by_aruco(image: np.array) -> Optional[Tuple[np.array, Tuple, Tu
 
     corners, ids = detect_aruco_markers(squared_image)
 
-    if len(corners) != 3:
+    if len(corners) != NUM_ARUCO_MARKERS:
         logger.debug(f"Not enough ArUco markers detected to de-skew the image: {len(corners)}")
         return
 
     # Extract the corners of the markers with IDs 0 and 1
-    id_0_index = np.where(ids == 0)[0][0]  # ID 0 = marker at the lower left of the table
+    id_0_index = np.where(ids == 1)[0][0]  # ID 1 = marker at the lower left of the table
     id_2_index = np.where(ids == 2)[0][0]  # ID 2 = marker at the lower right of the table
     angle = -180 + calculate_rotation_angle(corners[id_0_index][0], corners[id_2_index][0])
     rotated_image = rotate_image(squared_image, angle)
@@ -214,7 +214,7 @@ def rotate_image_by_aruco(image: np.array) -> Optional[Tuple[np.array, Tuple, Tu
 
     corners_after_rotation, ids_after_rotation = detect_aruco_markers(rotated_image)
 
-    if len(corners_after_rotation) != 3:
+    if len(corners_after_rotation) != NUM_ARUCO_MARKERS:
         logger.debug("Not all ArUco markers detected after rotation, using transformed original markers instead")
 
         rotation_matrix = cv2.getRotationMatrix2D((squared_image.shape[1] // 2, squared_image.shape[0] // 2), angle, 1.0)

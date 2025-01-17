@@ -101,7 +101,7 @@ After extraction, you should re-check the results in the xlsx file and correct a
 
 An exam *cover page* consists of the following elements:
 - *QR code*, containing the numeric, integer student number
-- three *aruco markers*, used to mark the position of the grading table, with the ids 0 (lower left), 1 (upper right) and 2 (lower right)
+- four *aruco markers*, used to mark the position of the grading table, with the ids 0 (upper left), 1 (bottom left), 2 (bottom right), and 3 (upper right)
 - a grading table
 
 The *grading table* consists of *point cells* for each *exercise* with two lines: primary and secondary.
