@@ -65,8 +65,10 @@ def extract_frames(video_path: str) -> Dict[int, np.array]:
                 if not ret:
                     break
 
-                # find_grading_table_and_student_number((frame_number, frame))
-                future = executor.submit(find_grading_table_and_student_number, (frame_number, frame))
+                resized_frame = resize(frame, 2000) # aruco and qr detection seems to have problems with very big resolutions
+
+                # find_grading_table_and_student_number((frame_number, resized_frame))
+                future = executor.submit(find_grading_table_and_student_number, (frame_number, resized_frame))
                 futures.append(future)
                 frame_number += 1
                 pbar.update(1)
@@ -111,6 +113,14 @@ def student_number_from_qr_code(image: np.array) -> Optional[int]:
 def has_all_aruco_markers(image: np.array) -> bool:
     corners, ids = detect_aruco_markers(image)
     return len(corners) == 3
+
+
+def resize(image: np.array, max_length: int) -> np.array:
+    h, w = image.shape[:2]
+    if max(h, w) > max_length:
+        scale_divisor = max(h, w) // max_length + 1
+        return cv2.resize(image, (w // scale_divisor, h // scale_divisor))
+    return image
 
 
 def detect_aruco_markers(image: np.array) -> Tuple[Tuple, Optional[np.array]]:
@@ -270,7 +280,6 @@ def detect_points(cover_pages: Dict[int, np.array], achievable_points: list[int]
         return grading_table
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        # [process_cover_page(student_number, image) for student_number, image in cover_pages.items()]
         futures = [executor.submit(process_cover_page, student_number, image) for student_number, image in cover_pages.items()]
 
         for future in tqdm(concurrent.futures.as_completed(futures), desc="Detecting points"):
