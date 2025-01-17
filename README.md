@@ -105,19 +105,18 @@ An exam *cover page* consists of the following elements:
 - a grading table
 
 The *grading table* consists of *point cells* for each *exercise* with two lines: primary and secondary.
-The secondary lines is usually empty, but can be used to correct points in the primary line. The secondary line is used if something is written there, otherwise the primary line is used.
+The secondary line is usually empty, but can be used to correct points in the primary line. The secondary line is used if something is written there, otherwise the primary line is used.
 
 Each point cell contains points (i.e. it may not be empty). Each point cell is divided into three parts: tens, ones, and tenths (called *digit cells*). The sum cell may contain hundreds.
 
 The exercise cells are 1-indexed from left to right; the sum cell has the index corresponding to the number of the last exercise plus 1.
 The digit cells within each exercise cell are 0-indexed from left to right.
 
-The software *detects* which handwritten numbers are written in the points cells. It considers the *achievable points*.  
+The software *detects* which handwritten numbers are written in the points cells. It considers the *achievable points*.
 
 ## Todos
 
 * include latex example code
-* re-check all requirements + split training requirements
 
 ## Credits
 
