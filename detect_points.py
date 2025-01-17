@@ -207,7 +207,7 @@ def rotate_image_by_aruco(image: np.array) -> Optional[Tuple[np.array, Tuple, Tu
     if len(corners_after_rotation) != 3:
         logger.debug("Not all ArUco markers detected after rotation, using transformed original markers instead")
 
-        rotation_matrix = cv2.getRotationMatrix2D((image.shape[1] // 2, image.shape[0] // 2), angle, 1.0)
+        rotation_matrix = cv2.getRotationMatrix2D((squared_image.shape[1] // 2, squared_image.shape[0] // 2), angle, 1.0)
         new_corners = []
         for corner in corners:
             new_corner = cv2.transform(corner, rotation_matrix)
