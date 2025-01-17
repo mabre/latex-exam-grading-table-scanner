@@ -246,6 +246,9 @@ def points_from_video(video_path: str, points_xlsx_path: str, achievable_points:
 
 
 def write_to_xlsx(exams: list[GradingTable], points_xlsx_path: str) -> None:
+    if len(exams) == 0:
+        raise ValueError("No exams to write to xlsx")
+
     wb = openpyxl.Workbook()
     ws = wb.active
 
@@ -266,6 +269,8 @@ def write_to_xlsx(exams: list[GradingTable], points_xlsx_path: str) -> None:
         shutil.copy(points_xlsx_path, f"{points_xlsx_path}~")
 
     wb.save(points_xlsx_path)
+
+    logger.info(f"Saved {len(exams)} results to {points_xlsx_path}")
 
 
 @log_execution_time
