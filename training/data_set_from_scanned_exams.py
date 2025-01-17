@@ -14,7 +14,7 @@ def read_points_from_xlsx(xlsx_file_path: Path) -> dict:
     points = {}
 
     student_number_column = column_index_by_title(ws, "Matrikelnummer") - 1
-    exercise_columns = column_indices_by_title(ws, "A\d+$")
+    exercise_columns = column_indices_by_title(ws, "A\\d+$")
 
     for row in ws.iter_rows(min_row=2, values_only=True):
         student_number = row[student_number_column]
