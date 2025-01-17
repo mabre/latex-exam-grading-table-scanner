@@ -34,7 +34,7 @@ When using the tool, it automatically saves the scanned digits to `corpus/`. You
 1. Make sure the points.xlsx file contains the correct points for the scanned images.
 2. Run:
 ```
-PYTHONPATH=.:$PYHTONPATH python training/data_set_from_scanned_digits.py points.xlsx corpus/
+PYTHONPATH=.:$PYHTONPATH python training/data_set_from_scanned_exams.py points.xlsx corpus/
 ``` 
 
 `corpus/` is expected to contain images named like `123456_3_0.png`, where
