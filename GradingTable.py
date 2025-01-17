@@ -6,7 +6,6 @@ import cv2
 import numpy as np
 from openpyxl.worksheet.worksheet import Worksheet
 from tensorflow.keras.models import load_model
-from torch.fx.config import verbose_progress
 
 from WorksheetFunctions import column_index_by_title, column_letter_by_title, write_image_to_cell
 from constants import DIGIT_IMAGE_SIZE, ALLOWED_DIGITS_TENTHS
