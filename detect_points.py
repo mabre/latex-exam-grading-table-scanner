@@ -178,9 +178,9 @@ def de_skew_and_crop_image(image: np.array) -> Optional[np.array]:
         width = max(np.linalg.norm(src_points[0] - src_points[1]), np.linalg.norm(src_points[2] - src_points[3]))
         height = max(np.linalg.norm(src_points[0] - src_points[3]), np.linalg.norm(src_points[1] - src_points[2]))
         destination_points = np.array([
-            [0, height - 1],
-            [width - 1, 0],
-            [width - 1, height - 1],
+            [0, height ],
+            [width, 0],
+            [width, height],
             [0, 0]
         ], dtype="float32")
 
