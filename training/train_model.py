@@ -23,6 +23,13 @@ BATCH_SIZE = 128
 
 def preprocess_image(image: np.array) -> np.array:
     """converts to grayscale, resizes, pads to target size"""
+    padded_image = make_square(image)
+    resized = cv2.resize(padded_image, (DIGIT_IMAGE_SIZE, DIGIT_IMAGE_SIZE))
+    gray = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY)
+    return gray
+
+
+def make_square(image: np.array) -> np.array:
     height, width = image.shape[:2]
     if height > width:
         padding = (height - width) // 2
@@ -30,9 +37,7 @@ def preprocess_image(image: np.array) -> np.array:
     else:
         padding = (width - height) // 2
         padded_image = cv2.copyMakeBorder(image, padding, padding, 0, 0, cv2.BORDER_CONSTANT, value=[255, 255, 255])
-    resized = cv2.resize(padded_image, (DIGIT_IMAGE_SIZE, DIGIT_IMAGE_SIZE))
-    gray = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY)
-    return gray
+    return padded_image
 
 
 def load_train_images_and_labels(dataset_path: Path) -> Tuple[np.ndarray, np.ndarray]:
