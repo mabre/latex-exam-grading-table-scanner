@@ -179,17 +179,47 @@ def de_skew_and_crop_image(image: np.array) -> Optional[np.array]:
 
         # Estimate one missing position if necessary
         if detected_corners[ARUCO_TOP_LEFT_ID] is None:
-            detected_corners[ARUCO_TOP_LEFT_ID] = detected_corners[ARUCO_BOTTOM_LEFT_ID] + detected_corners[ARUCO_TOP_RIGHT_ID] - detected_corners[2]
+            # Use the other corners to estimate the missing position
+            v1 = detected_corners[ARUCO_BOTTOM_LEFT_ID] + detected_corners[ARUCO_TOP_RIGHT_ID] - detected_corners[ARUCO_BOTTOM_RIGHT_ID]
+
+            # Use diagonal - this doesn't work for rotated inputs
+            # v2 = np.array([0, 0])
+            # v2[0] = detected_corners[ARUCO_BOTTOM_RIGHT_ID][0] - detected_corners[ARUCO_TOP_RIGHT_ID][0] + detected_corners[ARUCO_BOTTOM_LEFT_ID][0]
+            # v2[1] = detected_corners[ARUCO_BOTTOM_RIGHT_ID][1] - detected_corners[ARUCO_BOTTOM_LEFT_ID][1] + detected_corners[ARUCO_TOP_RIGHT_ID][1]
+
+            # Use the orientation of the markers
+            line_1_start = corners[bottom_left_index][0][ARUCO_CORNER_BOTTOM_RIGHT]
+            line_1_end = corners[bottom_left_index][0][ARUCO_CORNER_TOP_RIGHT]
+            line_2_start = corners[top_right_index][0][ARUCO_CORNER_TOP_LEFT]
+            line_2_end = corners[top_right_index][0][ARUCO_CORNER_TOP_RIGHT]
+            v3 = calculate_intersection(line_1_start, line_1_end, line_2_start, line_2_end)
+
+            detected_corners[ARUCO_TOP_LEFT_ID] = np.mean([v1, v3], axis=0)
         elif detected_corners[ARUCO_BOTTOM_LEFT_ID] is None:
-            detected_corners[ARUCO_BOTTOM_LEFT_ID] = detected_corners[ARUCO_TOP_LEFT_ID] + detected_corners[2] - detected_corners[ARUCO_TOP_RIGHT_ID]
+            # Use the other corners to estimate the missing position
+            v1 = detected_corners[ARUCO_TOP_LEFT_ID] + detected_corners[ARUCO_BOTTOM_RIGHT_ID] - detected_corners[ARUCO_TOP_RIGHT_ID]
+
+            # Use diagonal
+            # v2 = np.array([0, 0])
+            # v2[0] = detected_corners[ARUCO_TOP_RIGHT_ID][0] + detected_corners[ARUCO_TOP_LEFT_ID][0] - detected_corners[ARUCO_BOTTOM_RIGHT_ID][0]
+            # v2[1] = detected_corners[ARUCO_TOP_RIGHT_ID][1] + detected_corners[ARUCO_BOTTOM_RIGHT_ID][1] - detected_corners[ARUCO_TOP_LEFT_ID][1]
+
+            # Use the orientation of the markers
+            line_1_start = corners[top_left_index][0][ARUCO_CORNER_BOTTOM_RIGHT]
+            line_1_end = corners[top_left_index][0][ARUCO_CORNER_TOP_RIGHT]
+            line_2_start = corners[bottom_right_index][0][ARUCO_CORNER_BOTTOM_LEFT]
+            line_2_end = corners[bottom_right_index][0][ARUCO_CORNER_BOTTOM_RIGHT]
+            v3 = calculate_intersection(line_1_start, line_1_end, line_2_start, line_2_end)
+
+            detected_corners[ARUCO_BOTTOM_LEFT_ID] = np.mean([v1, v3], axis=0)
         elif detected_corners[ARUCO_BOTTOM_RIGHT_ID] is None:
             # Use the other corners to estimate the missing position
             v1 = detected_corners[ARUCO_TOP_RIGHT_ID] + detected_corners[ARUCO_BOTTOM_LEFT_ID] - detected_corners[ARUCO_TOP_LEFT_ID]
 
             # Use diagonal
-            v2 = np.array([0, 0])
-            v2[0] = detected_corners[ARUCO_TOP_LEFT_ID][0] + detected_corners[ARUCO_TOP_RIGHT_ID][0] - detected_corners[ARUCO_BOTTOM_LEFT_ID][0]
-            v2[1] = detected_corners[ARUCO_TOP_LEFT_ID][1] + detected_corners[ARUCO_BOTTOM_LEFT_ID][1] - detected_corners[ARUCO_TOP_RIGHT_ID][1]
+            # v2 = np.array([0, 0])
+            # v2[0] = detected_corners[ARUCO_TOP_LEFT_ID][0] + detected_corners[ARUCO_TOP_RIGHT_ID][0] - detected_corners[ARUCO_BOTTOM_LEFT_ID][0]
+            # v2[1] = detected_corners[ARUCO_TOP_LEFT_ID][1] + detected_corners[ARUCO_BOTTOM_LEFT_ID][1] - detected_corners[ARUCO_TOP_RIGHT_ID][1]
 
             # Use the orientation of the markers
             line_1_start = corners[top_right_index][0][ARUCO_CORNER_TOP_LEFT]
@@ -198,9 +228,24 @@ def de_skew_and_crop_image(image: np.array) -> Optional[np.array]:
             line_2_end = corners[bottom_left_index][0][ARUCO_CORNER_BOTTOM_LEFT]
             v3 = calculate_intersection(line_1_start, line_1_end, line_2_start, line_2_end)
 
-            detected_corners[2] = np.mean([v1, v2, v3], axis=0)
+            detected_corners[ARUCO_BOTTOM_RIGHT_ID] = np.mean([v1, v3], axis=0)
         elif detected_corners[ARUCO_TOP_RIGHT_ID] is None:
-            detected_corners[ARUCO_TOP_RIGHT_ID] = detected_corners[2] + detected_corners[0] - detected_corners[ARUCO_BOTTOM_LEFT_ID]
+            # Use the other corners to estimate the missing position
+            v1 = detected_corners[ARUCO_BOTTOM_RIGHT_ID] + detected_corners[ARUCO_TOP_LEFT_ID] - detected_corners[ARUCO_BOTTOM_LEFT_ID]
+
+            # Use diagonal
+            # v2 = np.array([0, 0])
+            # v2[0] = detected_corners[ARUCO_BOTTOM_LEFT_ID][0] + detected_corners[ARUCO_BOTTOM_RIGHT_ID][0] - detected_corners[ARUCO_TOP_LEFT_ID][0]
+            # v2[1] = detected_corners[ARUCO_BOTTOM_LEFT_ID][1] + detected_corners[ARUCO_TOP_LEFT_ID][1] - detected_corners[ARUCO_BOTTOM_RIGHT_ID][1]
+
+            # Use the orientation of the markers
+            line_1_start = corners[bottom_right_index][0][ARUCO_CORNER_BOTTOM_LEFT]
+            line_1_end = corners[bottom_right_index][0][ARUCO_CORNER_TOP_LEFT]
+            line_2_start = corners[top_left_index][0][ARUCO_CORNER_BOTTOM_RIGHT]
+            line_2_end = corners[top_left_index][0][ARUCO_CORNER_BOTTOM_LEFT]
+            v3 = calculate_intersection(line_1_start, line_1_end, line_2_start, line_2_end)
+
+            detected_corners[ARUCO_TOP_RIGHT_ID] = np.mean([v1, v3], axis=0)
 
         src_points = np.array(detected_corners, dtype="float32")
 
