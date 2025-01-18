@@ -1,4 +1,4 @@
-opencv-python~=4.10.0.84
+opencv-python~=4.11.0.86
 numpy~=1.26.4
 tensorflow~=2.17.0
 keras~=3.5.0

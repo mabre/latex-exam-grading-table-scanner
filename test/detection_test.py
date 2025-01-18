@@ -35,6 +35,10 @@ def test_rotation() -> None:
                    "test/resources/rotation/06.png",
                    "test/resources/rotation/07.png",
                    "test/resources/rotation/08.png",
+                   "test/resources/rotation/09.png",
+                   "test/resources/rotation/10.png",
+                   "test/resources/rotation/11.png",
+                   "test/resources/rotation/12.png"
                    ]
     for image_path in image_paths:
         input_frame = cv2.imread(image_path)
