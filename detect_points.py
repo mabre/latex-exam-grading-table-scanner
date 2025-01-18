@@ -158,14 +158,19 @@ def de_skew_and_crop_image(image: np.array) -> Optional[np.array]:
 
         detected_corners = [None, None, None, None]
 
+        ARUCO_CORNER_BOTTOM_RIGHT = 2
+        ARUCO_CORNER_BOTTOM_LEFT = 3
+        ARUCO_CORNER_TOP_LEFT = 0
+        ARUCO_CORNER_TOP_RIGHT = 1
+
         if id_0_index is not None:
-            detected_corners[0] = corners[id_0_index][0][2]  # bottom right corner of ID 0
+            detected_corners[0] = corners[id_0_index][0][ARUCO_CORNER_BOTTOM_RIGHT]
         if id_1_index is not None:
-            detected_corners[1] = corners[id_1_index][0][2]  # bottom right corner of ID 1
+            detected_corners[1] = corners[id_1_index][0][ARUCO_CORNER_BOTTOM_RIGHT]
         if id_2_index is not None:
-            detected_corners[2] = corners[id_2_index][0][3]  # bottom left corner of ID 2
+            detected_corners[2] = corners[id_2_index][0][ARUCO_CORNER_BOTTOM_LEFT]  # bottom left corner of ID 2
         if id_3_index is not None:
-            detected_corners[3] = corners[id_3_index][0][0]  # top left corner of ID 3
+            detected_corners[3] = corners[id_3_index][0][ARUCO_CORNER_TOP_LEFT]  # top left corner of ID 3
 
         # Estimate one missing position if necessary
         if detected_corners[0] is None:
@@ -173,7 +178,22 @@ def de_skew_and_crop_image(image: np.array) -> Optional[np.array]:
         elif detected_corners[1] is None:
             detected_corners[1] = detected_corners[0] + detected_corners[2] - detected_corners[3]
         elif detected_corners[2] is None:
-            detected_corners[2] = detected_corners[3] + detected_corners[1] - detected_corners[0]
+            # Use the other corners to estimate the missing position
+            v1 = detected_corners[3] + detected_corners[1] - detected_corners[0]
+
+            # Use diagonal
+            v2 = np.array([0, 0])
+            v2[0] = detected_corners[0][0] + detected_corners[3][0] - detected_corners[1][0]
+            v2[1] = detected_corners[0][1] + detected_corners[1][1] - detected_corners[3][1]
+
+            # Use the orientation of the markers
+            line_1_start = corners[id_3_index][0][0]
+            line_1_end = corners[id_3_index][0][3]
+            line_2_start = corners[id_1_index][0][2]
+            line_2_end = corners[id_1_index][0][3]
+            v3 = calculate_intersection(line_1_start, line_1_end, line_2_start, line_2_end)
+
+            detected_corners[2] = np.mean([v1, v2, v3], axis=0)
         elif detected_corners[3] is None:
             detected_corners[3] = detected_corners[2] + detected_corners[0] - detected_corners[1]
 
@@ -199,6 +219,30 @@ def de_skew_and_crop_image(image: np.array) -> Optional[np.array]:
     else:
         logger.warn("Not enough ArUco markers found - this shouldn't happen here")
         return None
+
+
+def calculate_intersection(line1_start, line1_end, line2_start, line2_end) -> np.array:
+    # Convert points to numpy arrays
+    p1 = np.array(line1_start)
+    p2 = np.array(line1_end)
+    p3 = np.array(line2_start)
+    p4 = np.array(line2_end)
+
+    # Calculate the direction vectors of the lines
+    d1 = p2 - p1
+    d2 = p4 - p3
+
+    # Create the matrix and vector for the linear system
+    A = np.array([d1, -d2]).T
+    b = p3 - p1
+
+    # Solve the linear system
+    t, s = np.linalg.solve(A, b)
+
+    # Calculate the intersection point
+    intersection = p1 + t * d1
+
+    return intersection
 
 
 def debug_draw_aruco_markers(corners, ids, image):

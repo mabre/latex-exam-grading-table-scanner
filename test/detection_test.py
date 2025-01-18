@@ -38,10 +38,17 @@ def test_rotation() -> None:
                    "test/resources/rotation/09.png",
                    "test/resources/rotation/10.png",
                    "test/resources/rotation/11.png",
-                   "test/resources/rotation/12.png"
+                   "test/resources/rotation/12.png",
+                   "test/resources/rotation/13.png",
+                   "test/resources/rotation/14.png",
+                   "test/resources/rotation/15.png",
+                   "test/resources/rotation/16.png",
+                   "test/resources/rotation/17.png"
                    ]
     for image_path in image_paths:
         input_frame = cv2.imread(image_path)
         rotated_image = de_skew_and_crop_image(input_frame)
+        if rotated_image is None:
+            raise AssertionError(f"Failed to rotate image {image_path}")
         image_base_name = image_path.split("/")[-1].split(".")[0]
         cv2.imwrite(f"/tmp/test{image_base_name}.png", rotated_image)
