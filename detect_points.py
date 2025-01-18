@@ -22,6 +22,16 @@ from training.train_model import make_square
 
 NUM_ARUCO_MARKERS = 4
 
+ARUCO_TOP_LEFT_ID = 0
+ARUCO_BOTTOM_LEFT_ID = 1
+ARUCO_BOTTOM_RIGHT_ID = 2
+ARUCO_TOP_RIGHT_ID = 3
+
+ARUCO_CORNER_TOP_LEFT = 0
+ARUCO_CORNER_TOP_RIGHT = 1
+ARUCO_CORNER_BOTTOM_RIGHT = 2
+ARUCO_CORNER_BOTTOM_LEFT = 3
+
 def log_execution_time(func: Callable):
     def wrapper(*args, **kwargs):
         start_time = time.time()
@@ -151,51 +161,46 @@ def de_skew_and_crop_image(image: np.array) -> Optional[np.array]:
     corners, ids = detect_aruco_markers(image)
 
     if ids is not None and len(ids) >= NUM_ARUCO_MARKERS - 1:
-        id_0_index = np.where(ids == 0)[0][0] if 0 in ids else None # top left of the table
-        id_1_index = np.where(ids == 1)[0][0] if 1 in ids else None # bottom left of the table
-        id_2_index = np.where(ids == 2)[0][0] if 2 in ids else None # bottom right of the table
-        id_3_index = np.where(ids == 3)[0][0] if 3 in ids else None # top right of the table
+        top_left_index = np.where(ids == ARUCO_TOP_LEFT_ID)[0][0] if ARUCO_TOP_LEFT_ID in ids else None
+        bottom_left_index = np.where(ids == ARUCO_BOTTOM_LEFT_ID)[0][0] if ARUCO_BOTTOM_LEFT_ID in ids else None
+        bottom_right_index = np.where(ids == ARUCO_BOTTOM_RIGHT_ID)[0][0] if ARUCO_BOTTOM_RIGHT_ID in ids else None
+        top_right_index = np.where(ids == ARUCO_TOP_RIGHT_ID)[0][0] if ARUCO_TOP_RIGHT_ID in ids else None
 
         detected_corners = [None, None, None, None]
 
-        ARUCO_CORNER_BOTTOM_RIGHT = 2
-        ARUCO_CORNER_BOTTOM_LEFT = 3
-        ARUCO_CORNER_TOP_LEFT = 0
-        ARUCO_CORNER_TOP_RIGHT = 1
-
-        if id_0_index is not None:
-            detected_corners[0] = corners[id_0_index][0][ARUCO_CORNER_BOTTOM_RIGHT]
-        if id_1_index is not None:
-            detected_corners[1] = corners[id_1_index][0][ARUCO_CORNER_BOTTOM_RIGHT]
-        if id_2_index is not None:
-            detected_corners[2] = corners[id_2_index][0][ARUCO_CORNER_BOTTOM_LEFT]  # bottom left corner of ID 2
-        if id_3_index is not None:
-            detected_corners[3] = corners[id_3_index][0][ARUCO_CORNER_TOP_LEFT]  # top left corner of ID 3
+        if top_left_index is not None:
+            detected_corners[ARUCO_TOP_LEFT_ID] = corners[top_left_index][0][ARUCO_CORNER_BOTTOM_RIGHT]
+        if bottom_left_index is not None:
+            detected_corners[ARUCO_BOTTOM_LEFT_ID] = corners[bottom_left_index][0][ARUCO_CORNER_BOTTOM_RIGHT]
+        if bottom_right_index is not None:
+            detected_corners[ARUCO_BOTTOM_RIGHT_ID] = corners[bottom_right_index][0][ARUCO_CORNER_BOTTOM_LEFT]
+        if top_right_index is not None:
+            detected_corners[ARUCO_TOP_RIGHT_ID] = corners[top_right_index][0][ARUCO_CORNER_TOP_LEFT]
 
         # Estimate one missing position if necessary
-        if detected_corners[0] is None:
-            detected_corners[0] = detected_corners[1] + detected_corners[3] - detected_corners[2]
-        elif detected_corners[1] is None:
-            detected_corners[1] = detected_corners[0] + detected_corners[2] - detected_corners[3]
-        elif detected_corners[2] is None:
+        if detected_corners[ARUCO_TOP_LEFT_ID] is None:
+            detected_corners[ARUCO_TOP_LEFT_ID] = detected_corners[ARUCO_BOTTOM_LEFT_ID] + detected_corners[ARUCO_TOP_RIGHT_ID] - detected_corners[2]
+        elif detected_corners[ARUCO_BOTTOM_LEFT_ID] is None:
+            detected_corners[ARUCO_BOTTOM_LEFT_ID] = detected_corners[ARUCO_TOP_LEFT_ID] + detected_corners[2] - detected_corners[ARUCO_TOP_RIGHT_ID]
+        elif detected_corners[ARUCO_BOTTOM_RIGHT_ID] is None:
             # Use the other corners to estimate the missing position
-            v1 = detected_corners[3] + detected_corners[1] - detected_corners[0]
+            v1 = detected_corners[ARUCO_TOP_RIGHT_ID] + detected_corners[ARUCO_BOTTOM_LEFT_ID] - detected_corners[ARUCO_TOP_LEFT_ID]
 
             # Use diagonal
             v2 = np.array([0, 0])
-            v2[0] = detected_corners[0][0] + detected_corners[3][0] - detected_corners[1][0]
-            v2[1] = detected_corners[0][1] + detected_corners[1][1] - detected_corners[3][1]
+            v2[0] = detected_corners[ARUCO_TOP_LEFT_ID][0] + detected_corners[ARUCO_TOP_RIGHT_ID][0] - detected_corners[ARUCO_BOTTOM_LEFT_ID][0]
+            v2[1] = detected_corners[ARUCO_TOP_LEFT_ID][1] + detected_corners[ARUCO_BOTTOM_LEFT_ID][1] - detected_corners[ARUCO_TOP_RIGHT_ID][1]
 
             # Use the orientation of the markers
-            line_1_start = corners[id_3_index][0][0]
-            line_1_end = corners[id_3_index][0][3]
-            line_2_start = corners[id_1_index][0][2]
-            line_2_end = corners[id_1_index][0][3]
+            line_1_start = corners[top_right_index][0][ARUCO_CORNER_TOP_LEFT]
+            line_1_end = corners[top_right_index][0][ARUCO_CORNER_BOTTOM_LEFT]
+            line_2_start = corners[bottom_left_index][0][ARUCO_CORNER_BOTTOM_RIGHT]
+            line_2_end = corners[bottom_left_index][0][ARUCO_CORNER_BOTTOM_LEFT]
             v3 = calculate_intersection(line_1_start, line_1_end, line_2_start, line_2_end)
 
             detected_corners[2] = np.mean([v1, v2, v3], axis=0)
-        elif detected_corners[3] is None:
-            detected_corners[3] = detected_corners[2] + detected_corners[0] - detected_corners[1]
+        elif detected_corners[ARUCO_TOP_RIGHT_ID] is None:
+            detected_corners[ARUCO_TOP_RIGHT_ID] = detected_corners[2] + detected_corners[0] - detected_corners[ARUCO_BOTTOM_LEFT_ID]
 
         src_points = np.array(detected_corners, dtype="float32")
 
