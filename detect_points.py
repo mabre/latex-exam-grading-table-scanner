@@ -135,22 +135,8 @@ def detect_aruco_markers(image: np.array) -> Tuple[Tuple, Optional[np.array]]:
     return corners, ids
 
 
-def calculate_rotation_angle(marker_position_1: np.array, marker_position_2: np.array) -> float:
-    delta_x = marker_position_1[0][0] - marker_position_2[0][0]
-    delta_y = marker_position_1[0][1] - marker_position_2[0][1]
-    return np.degrees(np.arctan2(delta_y, delta_x))
-
-
-def rotate_image(image: np.array, angle: float) -> np.array:
-    (h, w) = image.shape[:2]
-    center = (w // 2, h // 2)
-    M = cv2.getRotationMatrix2D(center, angle, 1.0)
-    rotated = cv2.warpAffine(image, M, (w, h))
-    return rotated
-
-
 def de_skew_and_crop_image(image: np.array) -> Optional[np.array]:
-    rotated_image, corners, ids = rotate_image_by_aruco(image)
+    corners, ids = detect_aruco_markers(image)
 
     if ids is not None and len(ids) >= NUM_ARUCO_MARKERS:
         # Extract the corners of the markers with IDs 0, 1, and 2
@@ -186,7 +172,7 @@ def de_skew_and_crop_image(image: np.array) -> Optional[np.array]:
 
         M = cv2.getPerspectiveTransform(src_points, destination_points)
 
-        de_skewed_image = cv2.warpPerspective(rotated_image, M, (int(width), int(height)))
+        de_skewed_image = cv2.warpPerspective(image, M, (int(width), int(height)))
 
         gray = cv2.cvtColor(de_skewed_image, cv2.COLOR_BGR2GRAY)
         binary = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
@@ -194,37 +180,6 @@ def de_skew_and_crop_image(image: np.array) -> Optional[np.array]:
         return cv2.cvtColor(binary, cv2.COLOR_GRAY2RGB)
     else:
         return None
-
-
-def rotate_image_by_aruco(image: np.array) -> Optional[Tuple[np.array, Tuple, Tuple]]:
-    squared_image = make_square(image) # if the image is no square, the grading table might be cut off after rotating by 90 degrees
-
-    corners, ids = detect_aruco_markers(squared_image)
-
-    if len(corners) != NUM_ARUCO_MARKERS:
-        logger.debug(f"Not enough ArUco markers detected to de-skew the image: {len(corners)}")
-        return
-
-    # Extract the corners of the markers with IDs 0 and 1
-    id_0_index = np.where(ids == 1)[0][0]  # ID 1 = marker at the lower left of the table
-    id_2_index = np.where(ids == 2)[0][0]  # ID 2 = marker at the lower right of the table
-    angle = -180 + calculate_rotation_angle(corners[id_0_index][0], corners[id_2_index][0])
-    rotated_image = rotate_image(squared_image, angle)
-    logger.debug(f"Rotated image by {angle} degrees")
-
-    corners_after_rotation, ids_after_rotation = detect_aruco_markers(rotated_image)
-
-    if len(corners_after_rotation) != NUM_ARUCO_MARKERS:
-        logger.debug("Not all ArUco markers detected after rotation, using transformed original markers instead")
-
-        rotation_matrix = cv2.getRotationMatrix2D((squared_image.shape[1] // 2, squared_image.shape[0] // 2), angle, 1.0)
-        new_corners = []
-        for corner in corners:
-            new_corner = cv2.transform(corner, rotation_matrix)
-            new_corners.append(new_corner)
-        return rotated_image, tuple(new_corners), ids
-
-    return rotated_image, corners_after_rotation, ids_after_rotation
 
 
 def debug_draw_aruco_markers(corners, ids, image):
