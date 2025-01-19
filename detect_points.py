@@ -261,30 +261,6 @@ def mirror_point_across_line(point, line_point1, line_point2) -> np.array:
     return np.array([x_mirrored, y_mirrored])
 
 
-def calculate_intersection(line1_start, line1_end, line2_start, line2_end) -> np.array:
-    # Convert points to numpy arrays
-    p1 = np.array(line1_start)
-    p2 = np.array(line1_end)
-    p3 = np.array(line2_start)
-    p4 = np.array(line2_end)
-
-    # Calculate the direction vectors of the lines
-    d1 = p2 - p1
-    d2 = p4 - p3
-
-    # Create the matrix and vector for the linear system
-    A = np.array([d1, -d2]).T
-    b = p3 - p1
-
-    # Solve the linear system
-    t, s = np.linalg.solve(A, b)
-
-    # Calculate the intersection point
-    intersection = p1 + t * d1
-
-    return intersection
-
-
 def debug_draw_aruco_markers(corners, ids, image):
     detected_image = aruco.drawDetectedMarkers(image.copy(), corners, ids)
     cv2.imshow("Detected ArUco Markers", detected_image)
