@@ -177,83 +177,32 @@ def de_skew_and_crop_image(image: np.array) -> Optional[np.array]:
         if top_right_index is not None:
             detected_corners[ARUCO_TOP_RIGHT_ID] = corners[top_right_index][0][ARUCO_CORNER_TOP_LEFT]
 
-        # Estimate one missing position if necessary
+        # Estimate one missing fourth position if necessary
         if detected_corners[ARUCO_TOP_LEFT_ID] is None:
-            # Use the other corners to estimate the missing position
-            v1 = detected_corners[ARUCO_BOTTOM_LEFT_ID] + detected_corners[ARUCO_TOP_RIGHT_ID] - detected_corners[ARUCO_BOTTOM_RIGHT_ID]
-
-            # Use diagonal
+            # Use diagonal to calculate missing position
             horizontal_point1 = detected_corners[ARUCO_BOTTOM_RIGHT_ID]
             horizontal_point2 = detected_corners[ARUCO_BOTTOM_LEFT_ID]
             third_point = detected_corners[ARUCO_TOP_RIGHT_ID]
             third_point_mirrored = mirror_point_across_line(third_point, horizontal_point1, horizontal_point2)
-            v2 = horizontal_point1 + horizontal_point2 - third_point_mirrored
-
-            # Use the orientation of the markers
-            line_1_start = corners[bottom_left_index][0][ARUCO_CORNER_BOTTOM_RIGHT]
-            line_1_end = corners[bottom_left_index][0][ARUCO_CORNER_TOP_RIGHT]
-            line_2_start = corners[top_right_index][0][ARUCO_CORNER_TOP_LEFT]
-            line_2_end = corners[top_right_index][0][ARUCO_CORNER_TOP_RIGHT]
-            v3 = calculate_intersection(line_1_start, line_1_end, line_2_start, line_2_end)
-
-            detected_corners[ARUCO_TOP_LEFT_ID] = np.mean([v1, v2, v3], axis=0)
+            detected_corners[ARUCO_TOP_LEFT_ID] = horizontal_point1 + horizontal_point2 - third_point_mirrored
         elif detected_corners[ARUCO_BOTTOM_LEFT_ID] is None:
-            # Use the other corners to estimate the missing position
-            v1 = detected_corners[ARUCO_TOP_LEFT_ID] + detected_corners[ARUCO_BOTTOM_RIGHT_ID] - detected_corners[ARUCO_TOP_RIGHT_ID]
-
-            # Use diagonal
             horizontal_point1 = detected_corners[ARUCO_TOP_RIGHT_ID]
             horizontal_point2 = detected_corners[ARUCO_TOP_LEFT_ID]
             third_point = detected_corners[ARUCO_BOTTOM_RIGHT_ID]
             third_point_mirrored = mirror_point_across_line(third_point, horizontal_point1, horizontal_point2)
-            v2 = horizontal_point1 + horizontal_point2 - third_point_mirrored
-
-            # Use the orientation of the markers
-            line_1_start = corners[top_left_index][0][ARUCO_CORNER_BOTTOM_RIGHT]
-            line_1_end = corners[top_left_index][0][ARUCO_CORNER_TOP_RIGHT]
-            line_2_start = corners[bottom_right_index][0][ARUCO_CORNER_BOTTOM_LEFT]
-            line_2_end = corners[bottom_right_index][0][ARUCO_CORNER_BOTTOM_RIGHT]
-            v3 = calculate_intersection(line_1_start, line_1_end, line_2_start, line_2_end)
-
-            detected_corners[ARUCO_BOTTOM_LEFT_ID] = np.mean([v1, v2, v3], axis=0)
+            detected_corners[ARUCO_BOTTOM_LEFT_ID] = horizontal_point1 + horizontal_point2 - third_point_mirrored
         elif detected_corners[ARUCO_BOTTOM_RIGHT_ID] is None:
-            # Use the other corners to estimate the missing position
-            v1 = detected_corners[ARUCO_TOP_RIGHT_ID] + detected_corners[ARUCO_BOTTOM_LEFT_ID] - detected_corners[ARUCO_TOP_LEFT_ID]
-
-            # Use diagonal
             horizontal_point1 = detected_corners[ARUCO_TOP_RIGHT_ID]
             horizontal_point2 = detected_corners[ARUCO_TOP_LEFT_ID]
             third_point = detected_corners[ARUCO_BOTTOM_LEFT_ID]
             third_point_mirrored = mirror_point_across_line(third_point, horizontal_point1, horizontal_point2)
-            v2 = horizontal_point1 + horizontal_point2 - third_point_mirrored
-
-            # Use the orientation of the markers
-            line_1_start = corners[top_right_index][0][ARUCO_CORNER_TOP_LEFT]
-            line_1_end = corners[top_right_index][0][ARUCO_CORNER_BOTTOM_LEFT]
-            line_2_start = corners[bottom_left_index][0][ARUCO_CORNER_BOTTOM_RIGHT]
-            line_2_end = corners[bottom_left_index][0][ARUCO_CORNER_BOTTOM_LEFT]
-            v3 = calculate_intersection(line_1_start, line_1_end, line_2_start, line_2_end)
-
-            detected_corners[ARUCO_BOTTOM_RIGHT_ID] = np.mean([v1, v2, v3], axis=0)
+            detected_corners[ARUCO_BOTTOM_RIGHT_ID] = horizontal_point1 + horizontal_point2 - third_point_mirrored
         elif detected_corners[ARUCO_TOP_RIGHT_ID] is None:
-            # Use the other corners to estimate the missing position
-            v1 = detected_corners[ARUCO_BOTTOM_RIGHT_ID] + detected_corners[ARUCO_TOP_LEFT_ID] - detected_corners[ARUCO_BOTTOM_LEFT_ID]
-
-            # Use diagonal
             horizontal_point1 = detected_corners[ARUCO_BOTTOM_RIGHT_ID]
             horizontal_point2 = detected_corners[ARUCO_BOTTOM_LEFT_ID]
             third_point = detected_corners[ARUCO_TOP_LEFT_ID]
             third_point_mirrored = mirror_point_across_line(third_point, horizontal_point1, horizontal_point2)
-            v2 = horizontal_point1 + horizontal_point2 - third_point_mirrored
-
-            # Use the orientation of the markers
-            line_1_start = corners[bottom_right_index][0][ARUCO_CORNER_BOTTOM_LEFT]
-            line_1_end = corners[bottom_right_index][0][ARUCO_CORNER_TOP_LEFT]
-            line_2_start = corners[top_left_index][0][ARUCO_CORNER_BOTTOM_RIGHT]
-            line_2_end = corners[top_left_index][0][ARUCO_CORNER_BOTTOM_LEFT]
-            v3 = calculate_intersection(line_1_start, line_1_end, line_2_start, line_2_end)
-
-            detected_corners[ARUCO_TOP_RIGHT_ID] = np.mean([v1, v2, v3], axis=0)
+            detected_corners[ARUCO_TOP_RIGHT_ID] = horizontal_point1 + horizontal_point2 - third_point_mirrored
 
         src_points = np.array(detected_corners, dtype="float32")
 
