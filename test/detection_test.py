@@ -55,4 +55,4 @@ def test_rotation() -> None:
         if rotated_image is None:
             raise AssertionError(f"Failed to rotate image {image_path}")
         image_base_name = image_path.split("/")[-1].split(".")[0]
-        cv2.imwrite(f"/tmp/test{image_base_name}.png", rotated_image)
+        cv2.imwrite(f"/tmp/rotation_test{image_base_name}.png", rotated_image)
