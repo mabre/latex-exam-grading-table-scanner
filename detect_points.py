@@ -6,7 +6,7 @@ import shutil
 import sys
 import time
 from pathlib import Path
-from typing import Optional, Dict, Tuple, Callable, List
+from typing import Optional, Dict, Tuple, Callable, List, Iterable
 
 import cv2
 import cv2.aruco as aruco
@@ -182,31 +182,17 @@ def de_skew_and_crop_image(image: np.array) -> Optional[np.array]:
             detected_corners[ARUCO_TOP_RIGHT_ID] = corners[top_right_index][0][ARUCO_CORNER_TOP_LEFT]
 
         # Estimate one missing fourth position if necessary
-        if detected_corners[ARUCO_TOP_LEFT_ID] is None:
+        missing_corner_index = index_of_none(detected_corners)
+        if missing_corner_index is not None:
             # Use diagonal to calculate missing position
-            horizontal_point1 = detected_corners[ARUCO_BOTTOM_RIGHT_ID]
-            horizontal_point2 = detected_corners[ARUCO_BOTTOM_LEFT_ID]
-            third_point = detected_corners[ARUCO_TOP_RIGHT_ID]
+            # Two points on the original horizontal border of the grading table
+            horizontal_point1 = detected_corners[(missing_corner_index + 1 + (missing_corner_index % 2)) % 4]
+            horizontal_point2 = detected_corners[(missing_corner_index + 2 + (missing_corner_index % 2)) % 4]
+            # Point on the other horizontal border, with the not detected aruco marker
+            third_point = detected_corners[(missing_corner_index + 3 + (missing_corner_index % 2) * 2) % 4]
             third_point_mirrored = mirror_point_across_line(third_point, horizontal_point1, horizontal_point2)
-            detected_corners[ARUCO_TOP_LEFT_ID] = horizontal_point1 + horizontal_point2 - third_point_mirrored
-        elif detected_corners[ARUCO_BOTTOM_LEFT_ID] is None:
-            horizontal_point1 = detected_corners[ARUCO_TOP_RIGHT_ID]
-            horizontal_point2 = detected_corners[ARUCO_TOP_LEFT_ID]
-            third_point = detected_corners[ARUCO_BOTTOM_RIGHT_ID]
-            third_point_mirrored = mirror_point_across_line(third_point, horizontal_point1, horizontal_point2)
-            detected_corners[ARUCO_BOTTOM_LEFT_ID] = horizontal_point1 + horizontal_point2 - third_point_mirrored
-        elif detected_corners[ARUCO_BOTTOM_RIGHT_ID] is None:
-            horizontal_point1 = detected_corners[ARUCO_TOP_RIGHT_ID]
-            horizontal_point2 = detected_corners[ARUCO_TOP_LEFT_ID]
-            third_point = detected_corners[ARUCO_BOTTOM_LEFT_ID]
-            third_point_mirrored = mirror_point_across_line(third_point, horizontal_point1, horizontal_point2)
-            detected_corners[ARUCO_BOTTOM_RIGHT_ID] = horizontal_point1 + horizontal_point2 - third_point_mirrored
-        elif detected_corners[ARUCO_TOP_RIGHT_ID] is None:
-            horizontal_point1 = detected_corners[ARUCO_BOTTOM_RIGHT_ID]
-            horizontal_point2 = detected_corners[ARUCO_BOTTOM_LEFT_ID]
-            third_point = detected_corners[ARUCO_TOP_LEFT_ID]
-            third_point_mirrored = mirror_point_across_line(third_point, horizontal_point1, horizontal_point2)
-            detected_corners[ARUCO_TOP_RIGHT_ID] = horizontal_point1 + horizontal_point2 - third_point_mirrored
+            # Now calculate the missing point by adding the diagonal to the point on the opposite corner
+            detected_corners[missing_corner_index] = horizontal_point2 + (horizontal_point1 - third_point_mirrored)
 
         src_points = np.array(detected_corners, dtype="float32")
 
@@ -232,7 +218,17 @@ def de_skew_and_crop_image(image: np.array) -> Optional[np.array]:
         return None
 
 
-def mirror_point_across_line(point, line_point1, line_point2) -> np.array:
+def index_of_none(xs: Iterable) -> Optional[int]:
+    for i, x in enumerate(xs):
+        try:
+            if x is None:
+                return i
+        except ValueError:
+            pass
+    return None
+
+
+def mirror_point_across_line(point: np.array, line_point1: np.array, line_point2: np.array) -> np.array:
     # Extract coordinates
     x, y = point[0], point[1]
     x1, y1 = line_point1
