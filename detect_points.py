@@ -1,24 +1,21 @@
-from tqdm import tqdm
-
-from log_setup import logger
-
 import concurrent
+import concurrent.futures
+import logging
 import os
 import shutil
 import sys
 import time
 from pathlib import Path
 from typing import Optional, Dict, Tuple, Callable, List
-import concurrent.futures
 
 import cv2
 import cv2.aruco as aruco
-
 import numpy as np
 import openpyxl
+from tqdm import tqdm
 
-from GradingTable import GradingTable, debug_display_image
-from training.train_model import make_square
+from GradingTable import GradingTable
+from log_setup import logger
 
 NUM_ARUCO_MARKERS = 4
 
@@ -151,9 +148,16 @@ def detect_aruco_markers(image: np.array) -> Tuple[Tuple, Optional[np.array]]:
     binary = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
     # note: use https://chev.me/arucogen/ to generate markers
     aruco_dict = aruco.getPredefinedDictionary(aruco.DICT_4X4_50)
-    aruco_detector = aruco.ArucoDetector(aruco_dict)
-    corners, ids, _ = aruco_detector.detectMarkers(binary)
+    parameters = aruco.DetectorParameters()
+    parameters.cornerRefinementMethod = aruco.CORNER_REFINE_SUBPIX
+    aruco_detector = aruco.ArucoDetector(aruco_dict, parameters)
+
+    corners, ids, _rejected_candidates = aruco_detector.detectMarkers(binary)
     # debug_draw_aruco_markers(corners, ids, image)
+
+    if len(set(ids.flatten()) - set(mid for mid in range(NUM_ARUCO_MARKERS))) > 0:
+        logging.warning(f"Detected ArUco marker ids are invalid: {ids}")
+
     return corners, ids
 
 
