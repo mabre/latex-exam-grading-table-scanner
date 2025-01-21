@@ -17,12 +17,12 @@ from tqdm import tqdm
 from GradingTable import GradingTable
 from log_setup import logger
 
-NUM_ARUCO_MARKERS = 4
-
 ARUCO_TOP_LEFT_ID = 0
 ARUCO_BOTTOM_LEFT_ID = 1
 ARUCO_BOTTOM_RIGHT_ID = 2
 ARUCO_TOP_RIGHT_ID = 3
+ARUCO_IDS = [ARUCO_TOP_LEFT_ID, ARUCO_BOTTOM_LEFT_ID, ARUCO_BOTTOM_RIGHT_ID, ARUCO_TOP_RIGHT_ID]
+NUM_ARUCO_MARKERS = len(ARUCO_IDS)
 
 ARUCO_CORNER_TOP_LEFT = 0
 ARUCO_CORNER_TOP_RIGHT = 1
@@ -155,10 +155,14 @@ def detect_aruco_markers(image: np.array) -> Tuple[Tuple, Optional[np.array]]:
     corners, ids, _rejected_candidates = aruco_detector.detectMarkers(binary)
     # debug_draw_aruco_markers(corners, ids, image)
 
-    if len(set(ids.flatten()) - set(mid for mid in range(NUM_ARUCO_MARKERS))) > 0:
-        logging.warning(f"Detected ArUco marker ids are invalid: {ids}")
+    if ids is None:
+        return corners, None
 
-    return corners, ids
+    valid_indices = [i for i, marker_id in enumerate(ids) if marker_id in ARUCO_IDS]
+    valid_corners = tuple(corners[i] for i in valid_indices)
+    valid_ids = np.array([ids[i] for i in valid_indices])
+
+    return valid_corners, valid_ids
 
 
 def de_skew_and_crop_image(image: np.array) -> Optional[np.array]:
