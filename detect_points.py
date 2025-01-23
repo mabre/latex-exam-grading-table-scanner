@@ -59,6 +59,11 @@ def find_grading_table_and_student_number(frame_data: Tuple[int, np.array]) -> O
 
 @log_execution_time
 def extract_frames(video_path: str) -> Dict[int, np.array]:
+    """
+    reads each frame in the video and considers all frames where a student number (numeric) qr code is found and at least three aruco markers are detected
+
+    For each student number, exactly one frame (the one in the middle) is returned, preferring those where four aruco markers are found.
+    """
     # todo safe all frames for each student, than take best sum-matching prediction; Achtung: immer noch die äußeren Frames verwerfen, falls die zu ner anderen Klausur gehören und wir mind. 5 Frames haben
     cap = cv2.VideoCapture(video_path)
     relevant_frames = {}
@@ -166,6 +171,11 @@ def detect_aruco_markers(image: np.array) -> Tuple[Tuple, Optional[np.array]]:
 
 
 def de_skew_and_crop_image(image: np.array) -> Optional[np.array]:
+    """
+    Cuts out the grading table from the image bases on the position of at least three detected aruco markers.
+
+    The returned image is black/white, and has a left and right margin which is as wide as a digit cell.
+    """
     corners, ids = detect_aruco_markers(image)
 
     if ids is not None and len(ids) >= NUM_ARUCO_MARKERS - 1:
@@ -189,6 +199,10 @@ def de_skew_and_crop_image(image: np.array) -> Optional[np.array]:
         missing_corner_index = index_of_none(detected_corners)
         if missing_corner_index is not None:
             # Use diagonal to calculate missing position
+            # Note that this only works if the scanned image is (nearly) a parallelogram (which is usually the case.
+            # Alternative approaches:
+            # - Use all corners of the three detected aruco markers to find the perspective transformation
+            # - Use aruco candidates near the estimated position
             # Two points on the original horizontal border of the grading table
             horizontal_point1 = detected_corners[(missing_corner_index + 1 + (missing_corner_index % 2)) % 4]
             horizontal_point2 = detected_corners[(missing_corner_index + 2 + (missing_corner_index % 2)) % 4]
