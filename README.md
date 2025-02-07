@@ -67,6 +67,8 @@ Make sure you hava a trained model, i.e. a file `0-10-final.keras`.
 
 ### Layout of cover pages
 
+TODO: update for 4 markers
+
 The tool expects the cover pages to look like this:
 - Somewhere is a qr code with the student number.
 - There is a grading table with handwritten points:
@@ -107,7 +109,7 @@ An exam *cover page* consists of the following elements:
 The *grading table* consists of *point cells* for each *exercise* with two lines: primary and secondary.
 The secondary line is usually empty, but can be used to correct points in the primary line. The secondary line is used if something is written there, otherwise the primary line is used.
 
-Each point cell contains points (i.e. it may not be empty). Each point cell is divided into three parts: tens, ones, and tenths (called *digit cells*). The sum cell may contain hundreds.
+Each point cell contains points (i.e. it may not be empty). Each point cell is divided into three parts: tens, ones, and tenths (called *digit cells*).
 
 The exercise cells are 1-indexed from left to right; the sum cell has the index corresponding to the number of the last exercise plus 1.
 The digit cells within each exercise cell are 0-indexed from left to right.
