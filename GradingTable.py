@@ -1,4 +1,5 @@
 from itertools import product
+from os import write
 from pathlib import Path
 from typing import List, Dict, Tuple
 
@@ -155,11 +156,18 @@ class PointsCell:
 class GradingTable:
     def __init__(self, image: np.array, achievable_points: List[float], student_number: int):
         """
-        :param image: The image of the complete grading table including padding on the left/right and four rows (exercise number, achievable points, achieved points (primary), achieved points (secondary))
+        :param image: The RGB image of the complete grading table including padding on the left/right and four rows (exercise number, achievable points, achieved points (primary), achieved points (secondary))
         """
         self.student_number = student_number
-        self._get_cells(image, achievable_points)
+        self.rgb_image = image
+        self._get_cells(self._to_black_white(image), achievable_points)
         self._points = self._detect_points()
+
+    @staticmethod
+    def _to_black_white(image: np.array) -> np.array:
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        binary = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
+        return cv2.cvtColor(binary, cv2.COLOR_GRAY2RGB)
 
     def _get_cells(self, image: np.array, achievable_points: List[float]):
         height, width, _ = image.shape
@@ -228,7 +236,7 @@ class GradingTable:
                 if point_cell.use_secondary():
                     image = digit_cell.secondary_image
                 if not DigitCell.is_empty(image):
-                    cv2.imwrite(directory / f"{self.student_number}_{idx}_{cell_idx}.png", image)
+                    cv2.imwrite(str(directory / f"{self.student_number}_{idx}_{cell_idx}.png"), image)
 
 
     def write_line(self, ws: Worksheet) -> None:
@@ -251,6 +259,8 @@ class GradingTable:
         sum_matches_formula = f"={column_letter_by_title(ws, 'Σ (erkannt)')}{target_row}={column_letter_by_title(ws, 'Σ (von Worksheet berechnet)')}{target_row}"
         ws.cell(row=target_row, column=column_index_by_title(ws, "Σ==Σ?"), value=sum_matches_formula)
 
-        for idx, exercise_grade in enumerate(self.points_cells, start=column_index_by_title(ws, 'A1-Bild')):
-            write_image_to_cell(ws, exercise_grade.get_used_image(), target_row, idx)
-        write_image_to_cell(ws, self.sum.get_used_image(), target_row, column_index_by_title(ws, 'Σ-Bild'))
+        write_image_to_cell(ws, GradingTable._lower_half(self.rgb_image), target_row, column_index_by_title(ws, "Photo"))
+
+    @staticmethod
+    def _lower_half(rgb_image: np.array) -> np.array:
+        return rgb_image[rgb_image.shape[0] // 2:, :]

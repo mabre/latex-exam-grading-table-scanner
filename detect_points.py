@@ -174,7 +174,7 @@ def de_skew_and_crop_image(image: np.array) -> Optional[np.array]:
     """
     Cuts out the grading table from the image bases on the position of at least three detected aruco markers.
 
-    The returned image is black/white, and has a left and right margin which is as wide as a digit cell.
+    The returned image is in RGB, and has a left and right margin which is as wide as a digit cell.
     """
     corners, ids = detect_aruco_markers(image)
 
@@ -225,12 +225,7 @@ def de_skew_and_crop_image(image: np.array) -> Optional[np.array]:
 
         M = cv2.getPerspectiveTransform(src_points, destination_points)
 
-        de_skewed_image = cv2.warpPerspective(image, M, (int(width), int(height)))
-
-        gray = cv2.cvtColor(de_skewed_image, cv2.COLOR_BGR2GRAY)
-        binary = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
-
-        return cv2.cvtColor(binary, cv2.COLOR_GRAY2RGB)
+        return cv2.warpPerspective(image, M, (int(width), int(height)))
     else:
         logger.warn("Not enough ArUco markers found - this shouldn't happen here")
         return None
@@ -305,8 +300,7 @@ def write_to_xlsx(exams: list[GradingTable], points_xlsx_path: str) -> None:
     sum_headers = ["Σ (erkannt)",
                   "Σ (von Worksheet berechnet)",
                   "Σ==Σ?"]
-    exercise_image_headers = [f"A{i}-Bild" for i in range(1, number_of_fields)]
-    header_line = ["Matrikelnummer"] + exercise_headers + sum_headers + exercise_image_headers + ["Σ-Bild"]
+    header_line = ["Matrikelnummer"] + exercise_headers + sum_headers + ["Photo"]
     for i, header in enumerate(header_line, start=1):
         ws.cell(row=1, column=i, value=header)
 
