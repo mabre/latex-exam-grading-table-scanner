@@ -338,6 +338,7 @@ def detect_points(cover_pages: Dict[int, np.array], achievable_points: list[int]
 if __name__ == "__main__":
     if len(sys.argv) != 4:
         print(f"Usage: {sys.argv[0]} <video_path> <grades.xlsx> <achievable grades>")
+        print(f"  e.g. foo.mkv /tmp/grades.xlsx 9,14,4,10")
         sys.exit(1)
     # TODO accept input Matrikelnummer liste and write empty lines where no data detected
     points_from_video(sys.argv[1], sys.argv[2], [int(p) for p in sys.argv[3].split(",")])
