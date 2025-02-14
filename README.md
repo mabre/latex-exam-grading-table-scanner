@@ -98,6 +98,12 @@ The tool will:
 
 After extraction, you should re-check the results in the xlsx file and correct any mistakes.
 
+### Tips for filming
+
+- Make sure there is enough light, e.g. sit underneath a lamp.
+- Use HD resolution (1280×720; higher resolution can actually be worse)
+- When changing to the next exam, do not put your fingers on the grading table; if this frame is chosen for number detection, you get bad results.
+- We use a IPEVO V4K with OBS for recording.
 
 ## Ubiquitous language
 
