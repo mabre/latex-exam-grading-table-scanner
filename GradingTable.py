@@ -9,7 +9,8 @@ from openpyxl.worksheet.worksheet import Worksheet
 from tensorflow.keras.models import load_model
 
 from WorksheetFunctions import column_index_by_title, column_letter_by_title, write_image_to_cell
-from constants import DIGIT_IMAGE_SIZE, ALLOWED_DIGITS_TENTHS
+from constants import DIGIT_IMAGE_SIZE, ALLOWED_DIGITS_TENTHS, STUDENT_ID_HEADER, EXERCISE_HEADER_PREFIX, \
+    SUM_RECOGNIZED_HEADER, SUM_WORKSHEET_HEADER
 from log_setup import logger
 from training.train_model import preprocess_image
 
@@ -242,21 +243,21 @@ class GradingTable:
     def write_line(self, ws: Worksheet) -> None:
         target_row = ws.max_row + 1
 
-        ws.cell(row=target_row, column=column_index_by_title(ws, "Matrikelnummer"), value=self.student_number)
+        ws.cell(row=target_row, column=column_index_by_title(ws, STUDENT_ID_HEADER), value=self.student_number)
 
         exercises_points = self.points()[:-1]
         for exercise_number, p in enumerate(exercises_points, start=1):
             ws.cell(row=target_row, column=column_index_by_title(ws, f"A{exercise_number}"), value=p)
 
         sum_points = self.points()[-1]
-        ws.cell(row=target_row, column=column_index_by_title(ws, "Σ (erkannt)"), value=sum_points)
+        ws.cell(row=target_row, column=column_index_by_title(ws, SUM_RECOGNIZED_HEADER), value=sum_points)
 
-        first_exercise_cell = f"{column_letter_by_title(ws, 'A1')}{target_row}"
-        last_exercise_cell = f"{column_letter_by_title(ws, f'A{len(exercises_points)}')}{target_row}"
+        first_exercise_cell = f"{column_letter_by_title(ws, f'{EXERCISE_HEADER_PREFIX}1')}{target_row}"
+        last_exercise_cell = f"{column_letter_by_title(ws, f'{EXERCISE_HEADER_PREFIX}{len(exercises_points)}')}{target_row}"
         sum_formula = f"=SUM({first_exercise_cell}:{last_exercise_cell})"
-        ws.cell(row=target_row, column=column_index_by_title(ws, "Σ (von Worksheet berechnet)"), value=sum_formula)
+        ws.cell(row=target_row, column=column_index_by_title(ws, SUM_WORKSHEET_HEADER), value=sum_formula)
 
-        sum_matches_formula = f"={column_letter_by_title(ws, 'Σ (erkannt)')}{target_row}={column_letter_by_title(ws, 'Σ (von Worksheet berechnet)')}{target_row}"
+        sum_matches_formula = f"={column_letter_by_title(ws, SUM_RECOGNIZED_HEADER)}{target_row}={column_letter_by_title(ws, SUM_WORKSHEET_HEADER)}{target_row}"
         ws.cell(row=target_row, column=column_index_by_title(ws, "Σ==Σ?"), value=sum_matches_formula)
 
         write_image_to_cell(ws, GradingTable._lower_half(self.rgb_image), target_row, column_index_by_title(ws, "Photo"))

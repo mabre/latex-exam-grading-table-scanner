@@ -6,6 +6,7 @@ from pathlib import Path
 import openpyxl
 
 from WorksheetFunctions import column_index_by_title, column_indices_by_title
+from constants import EXERCISE_HEADER_PREFIX, STUDENT_ID_HEADER
 
 
 def read_points_from_xlsx(xlsx_file_path: Path) -> dict:
@@ -13,8 +14,8 @@ def read_points_from_xlsx(xlsx_file_path: Path) -> dict:
     ws = wb.active
     points = {}
 
-    student_number_column = column_index_by_title(ws, "Matrikelnummer") - 1
-    exercise_columns = column_indices_by_title(ws, "A\\d+$")
+    student_number_column = column_index_by_title(ws, STUDENT_ID_HEADER) - 1
+    exercise_columns = column_indices_by_title(ws, f"{EXERCISE_HEADER_PREFIX}\\d+$")
 
     for row in ws.iter_rows(min_row=2, values_only=True):
         student_number = row[student_number_column]
