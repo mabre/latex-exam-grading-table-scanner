@@ -12,9 +12,11 @@ import cv2
 import cv2.aruco as aruco
 import numpy as np
 import openpyxl
+from openpyxl.utils import get_column_letter
 from tqdm import tqdm
 
 from GradingTable import GradingTable
+from constants import EXERCISE_HEADER_PREFIX
 from log_setup import logger
 
 ARUCO_TOP_LEFT_ID = 0
@@ -296,13 +298,15 @@ def write_to_xlsx(exams: list[GradingTable], points_xlsx_path: str) -> None:
     ws = wb.active
 
     number_of_fields = len(exams[0].points())
-    exercise_headers = [f"A{i}" for i in range(1, number_of_fields)]
+    exercise_headers = [f"{EXERCISE_HEADER_PREFIX}{i}" for i in range(1, number_of_fields)]
     sum_headers = ["Σ (erkannt)",
                   "Σ (von Worksheet berechnet)",
                   "Σ==Σ?"]
     header_line = ["Matrikelnummer"] + exercise_headers + sum_headers + ["Photo"]
     for i, header in enumerate(header_line, start=1):
         ws.cell(row=1, column=i, value=header)
+        if header.startswith(EXERCISE_HEADER_PREFIX):
+            ws.column_dimensions[get_column_letter(i)].width = 5
 
     for eg in exams:
         eg.write_line(ws)

@@ -5,3 +5,5 @@ ALLOWED_DIGITS_TENTHS = [0, 5]
 LOG_FILE_PATH = "messages.log"
 LOG_LEVEL_STDOUT = logging.INFO
 LOG_LEVEL_FILE = logging.DEBUG
+
+EXERCISE_HEADER_PREFIX = "A" # used for the output table
