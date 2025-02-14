@@ -3,6 +3,7 @@ import os
 import cv2
 
 from GradingTable import DigitCell, GradingTable, PointsCell
+from constants import STUDENT_ID_HEADER
 
 
 def test_empty_cell_detection() -> None:
@@ -49,3 +50,15 @@ def test_grade_detection_working() -> None:
     eg = PointsCell(16, [image1, image5, image5])
     detected = f"{eg.detect_number()[0][0]:03.1f}"
     assert detected == "15.5"
+
+
+def test_legacy_qr_code_with_student_id() -> None:
+    assert GradingTable._student_data(123) == {STUDENT_ID_HEADER: 123}
+
+
+def test_qr_code_with_json() -> None:
+    assert GradingTable._student_data('{"foo": 123, "bar": "fizz"}') == {"foo": 123, "bar": "fizz"}
+
+
+def test_qr_code_with_junk_accepted() -> None:
+    assert GradingTable._student_data('{"foo";') == {STUDENT_ID_HEADER: '{"foo";'}

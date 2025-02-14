@@ -1,7 +1,9 @@
+import json
 from itertools import product
+from json import JSONDecodeError
 from os import write
 from pathlib import Path
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Any
 
 import cv2
 import numpy as np
@@ -163,6 +165,7 @@ class GradingTable:
         self.rgb_image = image
         self._get_cells(self._to_black_white(image), achievable_points)
         self._points = self._detect_points()
+        self.student_data = self._student_data(student_number)
 
     @staticmethod
     def _to_black_white(image: np.array) -> np.array:
@@ -243,7 +246,8 @@ class GradingTable:
     def write_line(self, ws: Worksheet) -> None:
         target_row = ws.max_row + 1
 
-        ws.cell(row=target_row, column=column_index_by_title(ws, STUDENT_ID_HEADER), value=self.student_number)
+        for col in self.student_data_columns():
+            ws.cell(row=target_row, column=column_index_by_title(ws, col), value=self.student_data[col])
 
         exercises_points = self.points()[:-1]
         for exercise_number, p in enumerate(exercises_points, start=1):
@@ -261,6 +265,20 @@ class GradingTable:
         ws.cell(row=target_row, column=column_index_by_title(ws, "Σ==Σ?"), value=sum_matches_formula)
 
         write_image_to_cell(ws, GradingTable._lower_half(self.rgb_image), target_row, column_index_by_title(ws, "Photo"))
+
+    def student_data_columns(self) -> List[str]:
+        print(self.student_data)
+        return sorted(self.student_data.keys())
+
+    @staticmethod
+    def _student_data(student_number: Any) -> Dict[str, any]:
+        try:
+            json_data = json.loads(str(student_number))
+            if type(json_data) is dict:
+                return json_data
+            return {STUDENT_ID_HEADER: student_number}
+        except JSONDecodeError:
+            return {STUDENT_ID_HEADER: student_number}
 
     @staticmethod
     def _lower_half(rgb_image: np.array) -> np.array:

@@ -70,7 +70,7 @@ Make sure you hava a trained model, i.e. a file `0-10-final.keras`.
 TODO: update for 4 markers
 
 The tool expects the cover pages to look like this:
-- Somewhere is a qr code with the student number.
+- Somewhere is a qr code with the student number or json data; the keys of the json data will be used a column headers.
 - There is a grading table with handwritten points:
   - The table is surrounded by aruco markers. The vertical distance to the table must be one cell with. The upper or the lower edge, respectively, must be aligned with the table.
   - Each point cell is divided into tens, ones, and tenths; the sum cell may have hundreds.
@@ -108,7 +108,8 @@ After extraction, you should re-check the results in the xlsx file and correct a
 ## Ubiquitous language
 
 An exam *cover page* consists of the following elements:
-- *QR code*, containing the numeric, integer student number
+- *QR code*, containing any string to identify the exam
+  - this string may contain json data, which will be used as column headers in the output xlsx file
 - four *aruco markers*, used to mark the position of the grading table, with the ids 0 (upper left), 1 (bottom left), 2 (bottom right), and 3 (upper right)
 - a grading table
 

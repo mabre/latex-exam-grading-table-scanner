@@ -122,18 +122,21 @@ def get_best_frame(frames_with_aruco_count: list[Tuple[np.array, int]]) -> np.ar
     return frames_with_aruco_count[len(frames_with_aruco_count) // 2][0]
 
 
-def student_number_from_qr_code(image: np.array) -> Optional[int]:
+def student_number_from_qr_code(image: np.array) -> Optional[str]:
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     binary = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
 
     qr_decoder = cv2.QRCodeDetector()
     data, points, _ = qr_decoder.detectAndDecode(binary)
 
-    if points is not None and data.isnumeric():
+    if points is not None:
         logger.debug(f"QR Code Data: {data}")
-        return int(data)
+        if data.strip() == "":
+            logger.debug("Empty QR code data")
+            return None
+        return data
     else:
-        logger.debug("No QR codes found or data is not numeric")
+        logger.debug("No QR codes found")
         return None
 
 
@@ -302,7 +305,7 @@ def write_to_xlsx(exams: list[GradingTable], points_xlsx_path: str) -> None:
     sum_headers = [SUM_RECOGNIZED_HEADER,
                   SUM_WORKSHEET_HEADER,
                   "Σ==Σ?"]
-    header_line = [STUDENT_ID_HEADER] + exercise_headers + sum_headers + ["Photo"]
+    header_line = exams[0].student_data_columns() + exercise_headers + sum_headers + ["Photo"]
     for i, header in enumerate(header_line, start=1):
         ws.cell(row=1, column=i, value=header)
         if header.startswith(EXERCISE_HEADER_PREFIX):
