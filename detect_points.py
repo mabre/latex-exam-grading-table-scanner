@@ -54,7 +54,7 @@ def log_execution_time(func: Callable):
     return wrapper
 
 
-def find_grading_table_and_student_number(frame_data: Tuple[int, np.array]) -> Optional[Tuple[int, np.array, int, int]]:
+def find_grading_table_and_student_number(frame_data: Tuple[int, np.array]) -> Optional[Tuple[str, np.array, int, int]]:
     """
     :param frame_data: frame number and frame contents
     :return: student number, frame contents, frame number, and number of aruco markers, if all but one aruco markers and a qr code are found; None otherwise
