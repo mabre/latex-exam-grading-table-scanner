@@ -373,8 +373,10 @@ def debug_draw_aruco_markers(corners, ids, image):
 
 
 def points_from_video(video_path: str, points_xlsx_path: str, achievable_points: list[int]) -> None:
-    # frames = extract_frames(video_path)
-    frames = extract_frames_interactively(video_path)
+    if video_path.isnumeric():
+        frames = extract_frames(video_path)
+    else:
+        frames = extract_frames_interactively(video_path)
 
     exams = detect_points(frames, achievable_points)
 
