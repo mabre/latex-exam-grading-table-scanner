@@ -223,10 +223,8 @@ def student_number_from_qr_code(image: np.array) -> Tuple[Optional[str], Optiona
 
 
 def read_qr_code(image: np.array) -> Tuple[Any, Optional[np.array]]:
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    binary = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
     qr_decoder = cv2.QRCodeDetector()
-    data, points, _ = qr_decoder.detectAndDecode(binary)
+    data, points, _ = qr_decoder.detectAndDecode(image)
     return data, points
 
 
