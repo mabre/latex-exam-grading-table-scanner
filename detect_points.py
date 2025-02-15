@@ -242,15 +242,13 @@ def resize(image: np.array, max_length: int) -> np.array:
 
 
 def detect_aruco_markers(image: np.array) -> Tuple[Tuple, np.array]:
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    binary = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
     # note: use https://chev.me/arucogen/ to generate markers
     aruco_dict = aruco.getPredefinedDictionary(aruco.DICT_4X4_50)
     parameters = aruco.DetectorParameters()
     parameters.cornerRefinementMethod = aruco.CORNER_REFINE_SUBPIX
     aruco_detector = aruco.ArucoDetector(aruco_dict, parameters)
 
-    corners, ids, _rejected_candidates = aruco_detector.detectMarkers(binary)
+    corners, ids, _rejected_candidates = aruco_detector.detectMarkers(image)
     # debug_draw_aruco_markers(corners, ids, image)
 
     if ids is None:
