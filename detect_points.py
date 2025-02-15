@@ -72,6 +72,9 @@ def find_grading_table_and_student_number(frame_data: Tuple[int, np.array]) -> O
 
 
 def extract_frames_interactively(video_path: str):
+    """
+    :param video_path: may also be an integer (string) identifying the first, second, ... camera
+    """
     relevant_frames = {}
     frame_number = 0
     last_good_frame = -1000
@@ -88,51 +91,55 @@ def extract_frames_interactively(video_path: str):
         print("Error: Could not open video capture")
         return
 
-    while True:
-        ret, frame = cap.read()
+    try:
+        while True:
+            ret, frame = cap.read()
 
-        if not ret:
-            print("Error: Could not read frame")
-            break
+            if not ret:
+                print("Error: Could not read frame")
+                break
 
-        resized_frame = resize(frame, 2000)  # aruco and qr detection seems to have problems with very big resolutions
+            resized_frame = resize(frame, 2000)  # aruco and qr detection seems to have problems with very big resolutions
 
-        aruco_corners, aruco_ids = detect_aruco_markers(resized_frame)
-        student_number, qr_corners = student_number_from_qr_code(resized_frame)
-        color_index = len(aruco_ids) + 1 if qr_corners is not None else -1 # so we get any green only with detected qr code
-        color = COLORS[color_index]
+            aruco_corners, aruco_ids = detect_aruco_markers(resized_frame)
+            student_number, qr_corners = student_number_from_qr_code(resized_frame)
+            color_index = len(aruco_ids) + 1 if qr_corners is not None else -1 # so we get any green only with detected qr code
+            color = COLORS[color_index]
 
-        img_with_arucos = aruco.drawDetectedMarkers(resized_frame.copy(), aruco_corners, aruco_ids, borderColor=color)
-        img_with_arucos_qr = draw_qr_code_bounding_box(img_with_arucos, qr_corners, color)
+            img_with_arucos = aruco.drawDetectedMarkers(resized_frame.copy(), aruco_corners, aruco_ids, borderColor=color)
+            img_with_arucos_qr = draw_qr_code_bounding_box(img_with_arucos, qr_corners, color)
 
-        if len(aruco_ids) >= NUM_ARUCO_MARKERS - 1 and student_number is not None:
-            if previous_student_number != student_number:
-                playsound("sound/bell.ogg", block=False)
-                if previous_student_number is not None:
-                    relevant_frames[previous_student_number] = get_best_frame(new_frames)
-                    new_frames = []
-                    last_best_color_index = 0
-            previous_student_number = student_number
-            new_frames.append((resized_frame, len(aruco_ids)))
-            last_good_frame = frame_number
-            last_best_color_index = max(color_index, last_best_color_index)
+            if len(aruco_ids) >= NUM_ARUCO_MARKERS - 1 and student_number is not None:
+                if previous_student_number != student_number:
+                    playsound("sound/bell.ogg", block=False)
+                    if previous_student_number is not None:
+                        relevant_frames[previous_student_number] = get_best_frame(new_frames)
+                        new_frames = []
+                        last_best_color_index = 0
+                previous_student_number = student_number
+                new_frames.append((resized_frame, len(aruco_ids)))
+                last_good_frame = frame_number
+                last_best_color_index = max(color_index, last_best_color_index)
 
-        if frame_number - last_good_frame < 10:
-            cv2.rectangle(img_with_arucos_qr, (0, 0), (img_with_arucos_qr.shape[1], 50), COLORS[last_best_color_index], -1)
+            if frame_number - last_good_frame < 10:
+                cv2.rectangle(img_with_arucos_qr, (0, 0), (img_with_arucos_qr.shape[1], 50), COLORS[last_best_color_index], -1)
 
-        frame_number += 1
+            frame_number += 1
 
-        cv2.imshow("Detected Markers", resize(img_with_arucos_qr, MAX_CAMERA_IMAGE_PREVIEW_SIZE))
+            cv2.imshow("Detected Markers", resize(img_with_arucos_qr, MAX_CAMERA_IMAGE_PREVIEW_SIZE))
 
-        # quit using 'q'
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+            # quit using 'q'
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
 
-    if len(new_frames) > 0 and previous_student_number is not None and previous_student_number not in relevant_frames:
-        relevant_frames[previous_student_number] = get_best_frame(new_frames)
+        if len(new_frames) > 0 and previous_student_number is not None and previous_student_number not in relevant_frames:
+            relevant_frames[previous_student_number] = get_best_frame(new_frames)
 
-    cap.release()
-    cv2.destroyAllWindows()
+        cap.release()
+        cv2.destroyAllWindows()
+    except Exception as e:
+        logging.error(e)
+        logging.error("An unexpected error occurred, trying to process the frames already recorded")
 
     return relevant_frames
 
