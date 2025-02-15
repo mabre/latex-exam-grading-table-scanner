@@ -6,17 +6,19 @@ import shutil
 import sys
 import time
 from pathlib import Path
-from typing import Optional, Dict, Tuple, Callable, List, Iterable
+from typing import Optional, Dict, Tuple, Callable, List, Iterable, Any, Union
 
 import cv2
 import cv2.aruco as aruco
 import numpy as np
 import openpyxl
 from openpyxl.utils import get_column_letter
+from playsound import playsound
 from tqdm import tqdm
 
 from GradingTable import GradingTable
-from constants import EXERCISE_HEADER_PREFIX, STUDENT_ID_HEADER, SUM_RECOGNIZED_HEADER, SUM_WORKSHEET_HEADER
+from constants import EXERCISE_HEADER_PREFIX, STUDENT_ID_HEADER, SUM_RECOGNIZED_HEADER, SUM_WORKSHEET_HEADER, \
+    MAX_CAMERA_IMAGE_PREVIEW_SIZE
 from log_setup import logger
 
 ARUCO_TOP_LEFT_ID = 0
@@ -57,6 +59,80 @@ def find_grading_table_and_student_number(frame_data: Tuple[int, np.array]) -> O
             logger.debug(f"Found student number {student_number} and all aruco markers in frame {frame_number}")
             return student_number, frame, frame_number, markers_found
     return None
+
+
+def extract_frames_interactively(video_path: Union[str,int]):
+    relevant_frames = {}
+    frame_number = 0
+    last_good_frame = -1000
+    last_best_color_index = 0
+    previous_student_number = None
+    new_frames = []
+    cap = cv2.VideoCapture(video_path)
+    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1) # limit the buffer so that processing a frame too slowly does not cause the video to lag behind
+
+    if not cap.isOpened():
+        print("Error: Could not open video capture")
+        return
+
+    while True:
+        ret, frame = cap.read()
+
+        if not ret:
+            print("Error: Could not read frame")
+            break
+
+        resized_frame = resize(frame, 2000)  # aruco and qr detection seems to have problems with very big resolutions
+
+        aruco_corners, aruco_ids = detect_aruco_markers(resized_frame)
+        _, qr_corners = read_qr_code(resized_frame)
+        color_index = len(aruco_ids) + 1 if qr_corners is not None else -1 # so we get any green only with detected qr code
+        colors = {
+            -1: (0, 0, 255),  # Red
+            0: (0, 0, 255),  # Red
+            1: (0, 0, 255),  # Red
+            2: (0, 165, 255),  # Orange
+            3: (0, 255, 255),  # Yellow
+            4: (47, 255, 173),  # Light Green
+            5: (0, 255, 0)  # Green
+        }
+        color = colors[color_index]
+
+        img_with_arucos = aruco.drawDetectedMarkers(resized_frame.copy(), aruco_corners, aruco_ids, borderColor=color)
+        img_with_arucos_qr = draw_qr_code_bounding_box(img_with_arucos, qr_corners, color)
+
+        result = find_grading_table_and_student_number((-1,resized_frame))  # TODO duplicated detection work
+        if result is not None:
+            student_number, frame, _, number_of_arucos = result
+            if previous_student_number != student_number:
+                playsound("sound/bell.ogg", block=False)
+                if previous_student_number is not None:
+                    relevant_frames[previous_student_number] = get_best_frame(new_frames)
+                    new_frames = []
+                    last_best_color_index = 0
+            previous_student_number = student_number
+            new_frames.append((frame, number_of_arucos))
+            last_good_frame = frame_number
+            last_best_color_index = max(color_index, last_best_color_index)
+
+        if frame_number - last_good_frame < 10:
+            cv2.rectangle(img_with_arucos_qr, (0, 0), (img_with_arucos_qr.shape[1], 50), colors[last_best_color_index], -1)
+
+        frame_number += 1
+
+        cv2.imshow("Detected Markers", resize(img_with_arucos_qr, MAX_CAMERA_IMAGE_PREVIEW_SIZE))
+
+        # quit using 'q'
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    if len(new_frames) > 0 and previous_student_number is not None and previous_student_number not in relevant_frames:
+        relevant_frames[previous_student_number] = get_best_frame(new_frames)
+
+    cap.release()
+    cv2.destroyAllWindows()
+
+    return relevant_frames
 
 
 @log_execution_time
@@ -123,11 +199,7 @@ def get_best_frame(frames_with_aruco_count: list[Tuple[np.array, int]]) -> np.ar
 
 
 def student_number_from_qr_code(image: np.array) -> Optional[str]:
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    binary = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
-
-    qr_decoder = cv2.QRCodeDetector()
-    data, points, _ = qr_decoder.detectAndDecode(binary)
+    data, points = read_qr_code(image)
 
     if points is not None:
         logger.debug(f"QR Code Data: {data}")
@@ -138,6 +210,14 @@ def student_number_from_qr_code(image: np.array) -> Optional[str]:
     else:
         logger.debug("No QR codes found")
         return None
+
+
+def read_qr_code(image: np.array) -> Tuple[Any, Optional[np.array]]:
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    binary = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
+    qr_decoder = cv2.QRCodeDetector()
+    data, points, _ = qr_decoder.detectAndDecode(binary)
+    return data, points
 
 
 def number_of_aruco_markers(image: np.array) -> int:
@@ -153,7 +233,7 @@ def resize(image: np.array, max_length: int) -> np.array:
     return image
 
 
-def detect_aruco_markers(image: np.array) -> Tuple[Tuple, Optional[np.array]]:
+def detect_aruco_markers(image: np.array) -> Tuple[Tuple, np.array]:
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     binary = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
     # note: use https://chev.me/arucogen/ to generate markers
@@ -166,11 +246,15 @@ def detect_aruco_markers(image: np.array) -> Tuple[Tuple, Optional[np.array]]:
     # debug_draw_aruco_markers(corners, ids, image)
 
     if ids is None:
-        return corners, None
+        return corners, np.asarray([])
 
     valid_indices = [i for i, marker_id in enumerate(ids) if marker_id in ARUCO_IDS]
     valid_corners = tuple(corners[i] for i in valid_indices)
     valid_ids = np.array([ids[i] for i in valid_indices])
+
+    if len(np.unique(valid_ids.flatten())) != len(valid_ids):
+        logger.debug(f"Found duplicated aruco {valid_ids}, discarding this frame")
+        return (), np.asarray([])
 
     return valid_corners, valid_ids
 
@@ -183,7 +267,7 @@ def de_skew_and_crop_image(image: np.array) -> Optional[np.array]:
     """
     corners, ids = detect_aruco_markers(image)
 
-    if ids is not None and len(ids) >= NUM_ARUCO_MARKERS - 1:
+    if len(ids) >= NUM_ARUCO_MARKERS - 1:
         top_left_index = np.where(ids == ARUCO_TOP_LEFT_ID)[0][0] if ARUCO_TOP_LEFT_ID in ids else None
         bottom_left_index = np.where(ids == ARUCO_BOTTOM_LEFT_ID)[0][0] if ARUCO_BOTTOM_LEFT_ID in ids else None
         bottom_right_index = np.where(ids == ARUCO_BOTTOM_RIGHT_ID)[0][0] if ARUCO_BOTTOM_RIGHT_ID in ids else None
@@ -283,7 +367,8 @@ def debug_draw_aruco_markers(corners, ids, image):
 
 
 def points_from_video(video_path: str, points_xlsx_path: str, achievable_points: list[int]) -> None:
-    frames = extract_frames(video_path)
+    # frames = extract_frames(video_path)
+    frames = extract_frames_interactively(video_path)
 
     exams = detect_points(frames, achievable_points)
 
@@ -340,6 +425,14 @@ def detect_points(cover_pages: Dict[int, np.array], achievable_points: list[int]
             grading_tables.append(future.result())
 
     return sorted(grading_tables, key=lambda eg: eg.student_number)
+
+def draw_qr_code_bounding_box(image: np.array, points: np.array, color: Tuple[int, int, int]) -> np.array:
+    if points is not None:
+        image = image.copy()
+        points = points[0].astype(int)
+        for i in range(len(points)):
+            cv2.line(image, tuple(points[i]), tuple(points[(i + 1) % len(points)]), color, 2)
+    return image
 
 
 if __name__ == "__main__":

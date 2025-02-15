@@ -5,6 +5,7 @@ ALLOWED_DIGITS_TENTHS = [0, 5]
 LOG_FILE_PATH = "messages.log"
 LOG_LEVEL_STDOUT = logging.INFO
 LOG_LEVEL_FILE = logging.DEBUG
+MAX_CAMERA_IMAGE_PREVIEW_SIZE = 1200
 
 # used for the output table
 STUDENT_ID_HEADER = "Klnr." # this should match the key in the qr code if json is used in the code
