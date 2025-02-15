@@ -104,6 +104,7 @@ def extract_frames_interactively(video_path: str):
 
             aruco_corners, aruco_ids = detect_aruco_markers(resized_frame)
             student_number, qr_corners = student_number_from_qr_code(resized_frame)
+
             color_index = len(aruco_ids) + 1 if qr_corners is not None else -1 # so we get any green only with detected qr code
             color = COLORS[color_index]
 

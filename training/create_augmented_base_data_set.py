@@ -72,6 +72,9 @@ def process_and_save_images(input_path: Path, output_path: Path):
     for digit in range(10):
         digit_path = input_path / str(digit)
 
+        if not os.path.exists(output_path / str(digit)):
+            os.mkdir(output_path / str(digit))
+
         filenames = sorted(os.listdir(digit_path))[:files_to_create_per_digit]
         for filename in tqdm(filenames, desc=f"Processing digit {digit}"):
             if filename.lower().endswith('.png'):
