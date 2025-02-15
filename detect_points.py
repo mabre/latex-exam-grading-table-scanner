@@ -33,6 +33,16 @@ ARUCO_CORNER_TOP_RIGHT = 1
 ARUCO_CORNER_BOTTOM_RIGHT = 2
 ARUCO_CORNER_BOTTOM_LEFT = 3
 
+COLORS = {
+    -1: (0, 0, 255),  # Red
+    0: (0, 0, 255),  # Red
+    1: (0, 0, 255),  # Red
+    2: (0, 165, 255),  # Orange
+    3: (0, 255, 255),  # Yellow
+    4: (47, 255, 173),  # Light Green
+    5: (0, 255, 0)  # Green
+}
+
 def log_execution_time(func: Callable):
     def wrapper(*args, **kwargs):
         start_time = time.time()
@@ -53,7 +63,7 @@ def find_grading_table_and_student_number(frame_data: Tuple[int, np.array]) -> O
     # print(frame_number, number_of_aruco_markers(frame))
     markers_found = number_of_aruco_markers(frame)
     if markers_found >= NUM_ARUCO_MARKERS - 1:
-        student_number = student_number_from_qr_code(frame)
+        student_number, _ = student_number_from_qr_code(frame)
         logger.debug(f"Found {markers_found} aruco markers in frame {frame_number}")
         if student_number is not None:
             logger.debug(f"Found student number {student_number} and all aruco markers in frame {frame_number}")
@@ -85,25 +95,14 @@ def extract_frames_interactively(video_path: Union[str,int]):
         resized_frame = resize(frame, 2000)  # aruco and qr detection seems to have problems with very big resolutions
 
         aruco_corners, aruco_ids = detect_aruco_markers(resized_frame)
-        _, qr_corners = read_qr_code(resized_frame)
+        student_number, qr_corners = student_number_from_qr_code(resized_frame)
         color_index = len(aruco_ids) + 1 if qr_corners is not None else -1 # so we get any green only with detected qr code
-        colors = {
-            -1: (0, 0, 255),  # Red
-            0: (0, 0, 255),  # Red
-            1: (0, 0, 255),  # Red
-            2: (0, 165, 255),  # Orange
-            3: (0, 255, 255),  # Yellow
-            4: (47, 255, 173),  # Light Green
-            5: (0, 255, 0)  # Green
-        }
-        color = colors[color_index]
+        color = COLORS[color_index]
 
         img_with_arucos = aruco.drawDetectedMarkers(resized_frame.copy(), aruco_corners, aruco_ids, borderColor=color)
         img_with_arucos_qr = draw_qr_code_bounding_box(img_with_arucos, qr_corners, color)
 
-        result = find_grading_table_and_student_number((-1,resized_frame))  # TODO duplicated detection work
-        if result is not None:
-            student_number, frame, _, number_of_arucos = result
+        if len(aruco_ids) >= NUM_ARUCO_MARKERS - 1 and student_number is not None:
             if previous_student_number != student_number:
                 playsound("sound/bell.ogg", block=False)
                 if previous_student_number is not None:
@@ -111,12 +110,12 @@ def extract_frames_interactively(video_path: Union[str,int]):
                     new_frames = []
                     last_best_color_index = 0
             previous_student_number = student_number
-            new_frames.append((frame, number_of_arucos))
+            new_frames.append((resized_frame, len(aruco_ids)))
             last_good_frame = frame_number
             last_best_color_index = max(color_index, last_best_color_index)
 
         if frame_number - last_good_frame < 10:
-            cv2.rectangle(img_with_arucos_qr, (0, 0), (img_with_arucos_qr.shape[1], 50), colors[last_best_color_index], -1)
+            cv2.rectangle(img_with_arucos_qr, (0, 0), (img_with_arucos_qr.shape[1], 50), COLORS[last_best_color_index], -1)
 
         frame_number += 1
 
@@ -198,18 +197,18 @@ def get_best_frame(frames_with_aruco_count: list[Tuple[np.array, int]]) -> np.ar
     return frames_with_aruco_count[len(frames_with_aruco_count) // 2][0]
 
 
-def student_number_from_qr_code(image: np.array) -> Optional[str]:
+def student_number_from_qr_code(image: np.array) -> Tuple[Optional[str], Optional[np.array]]:
     data, points = read_qr_code(image)
 
     if points is not None:
         logger.debug(f"QR Code Data: {data}")
         if data.strip() == "":
             logger.debug("Empty QR code data")
-            return None
-        return data
+            return None, None
+        return data, points
     else:
         logger.debug("No QR codes found")
-        return None
+        return None, None
 
 
 def read_qr_code(image: np.array) -> Tuple[Any, Optional[np.array]]:
