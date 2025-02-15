@@ -71,14 +71,17 @@ def find_grading_table_and_student_number(frame_data: Tuple[int, np.array]) -> O
     return None
 
 
-def extract_frames_interactively(video_path: Union[str,int]):
+def extract_frames_interactively(video_path: str):
     relevant_frames = {}
     frame_number = 0
     last_good_frame = -1000
     last_best_color_index = 0
     previous_student_number = None
     new_frames = []
-    cap = cv2.VideoCapture(video_path)
+    if video_path.isnumeric():
+        cap = cv2.VideoCapture(int(video_path))
+    else:
+        cap = cv2.VideoCapture(video_path)
     cap.set(cv2.CAP_PROP_BUFFERSIZE, 1) # limit the buffer so that processing a frame too slowly does not cause the video to lag behind
 
     if not cap.isOpened():
