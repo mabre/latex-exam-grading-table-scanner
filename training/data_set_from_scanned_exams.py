@@ -37,7 +37,7 @@ def copy_and_rename_images(images: list[Path], points: dict, base_path: Path):
             real_digit = digit(cell_index, points_for_exercise)
 
             timestamp = datetime.now().strftime("%Y-%m-%d-%H%M%S%f")
-            new_name = f"{timestamp}.png"
+            new_name = f"{timestamp}-{student_number}.png" # if "student_number" is personal data, it should be removed; if it's a random number anyway, it may be included for easier correction of errors
             destination = base_path / str(real_digit) / new_name
             destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy(image_path, destination)
