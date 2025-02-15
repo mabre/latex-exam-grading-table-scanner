@@ -85,18 +85,19 @@ def extract_frames_interactively(video_path: str):
         cap = cv2.VideoCapture(int(video_path))
     else:
         cap = cv2.VideoCapture(video_path)
-    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1) # limit the buffer so that processing a frame too slowly does not cause the video to lag behind
+    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1) # limit the buffer so that processing a frame too slowly does not cause the video to lag behind; this has no influence if a video file is used
 
     if not cap.isOpened():
-        print("Error: Could not open video capture")
+        logger.error("Could not open video capture")
         return
 
     try:
+        logger.info("Press 'q' to quit capturing")
         while True:
             ret, frame = cap.read()
 
             if not ret:
-                print("Error: Could not read frame")
+                logger.error("Could not read frame, aborting reading new frames (this is normal at the end of a video file)")
                 break
 
             resized_frame = resize(frame, 2000)  # aruco and qr detection seems to have problems with very big resolutions
@@ -138,8 +139,8 @@ def extract_frames_interactively(video_path: str):
         cap.release()
         cv2.destroyAllWindows()
     except Exception as e:
-        logging.error(e)
-        logging.error("An unexpected error occurred, trying to process the frames already recorded")
+        logger.error(e)
+        logger.error("An unexpected error occurred, trying to process the frames already recorded")
 
     return relevant_frames
 

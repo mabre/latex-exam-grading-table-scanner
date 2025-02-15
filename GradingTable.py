@@ -267,7 +267,6 @@ class GradingTable:
         write_image_to_cell(ws, GradingTable._lower_half(self.rgb_image), target_row, column_index_by_title(ws, "Photo"))
 
     def student_data_columns(self) -> List[str]:
-        print(self.student_data)
         return sorted(self.student_data.keys())
 
     @staticmethod
