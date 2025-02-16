@@ -90,7 +90,7 @@ python detect_points.py test/resources/VID_20240923_102406.mp4 /tmp/points.xlsx 
 ```
 
 Several video file formats are supported.
-Use an integer as file path to select the 0th, 1st etc. camera.
+Use an integer as file path to select the 0th, 1st etc. camera; use q to stop recording.
 
 The tool will:
 1. Look for all video frames with a qr code and all aruco markers.
@@ -107,6 +107,7 @@ After extraction, you should re-check the results in the xlsx file and correct a
 - Use HD resolution (1280×720; higher resolution can actually be worse)
 - When changing to the next exam, do not put your fingers on the grading table; if this frame is chosen for number detection, you get bad results.
 - We use a IPEVO V4K with OBS for recording.
+- In case the tool crashes while recording a video, the cover pages already scanned are not lost. They are saved in the `corpus/` directory. Use `ffmpeg -framerate 1 -pattern_type glob -i '*-coverpage.png' -c:v libx264 -r 30 -pix_fmt yuv420p coverpages.mp4` to create a video from the images, and then use that video file as input.
 
 ## Ubiquitous language
 

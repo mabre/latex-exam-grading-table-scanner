@@ -71,7 +71,7 @@ def find_grading_table_and_student_number(frame_data: Tuple[int, np.array]) -> O
     return None
 
 
-def extract_frames_interactively(video_path: str):
+def extract_frames_interactively(video_path: str) -> Dict[str, np.array]:
     """
     :param video_path: may also be an integer (string) identifying the first, second, ... camera
     """
@@ -89,7 +89,7 @@ def extract_frames_interactively(video_path: str):
 
     if not cap.isOpened():
         logger.error("Could not open video capture")
-        return
+        return {}
 
     try:
         logger.info("Press 'q' to quit capturing")
@@ -115,7 +115,9 @@ def extract_frames_interactively(video_path: str):
                 if previous_student_number != student_number:
                     playsound("sound/bell.ogg", block=False)
                     if previous_student_number is not None:
-                        relevant_frames[previous_student_number] = get_best_frame(new_frames)
+                        best_frame = get_best_frame(new_frames)
+                        relevant_frames[previous_student_number] = best_frame
+                        cv2.imwrite(f"corpus/{previous_student_number}-coverpage.png", best_frame)
                         new_frames = []
                         last_best_color_index = 0
                 previous_student_number = student_number
@@ -135,7 +137,9 @@ def extract_frames_interactively(video_path: str):
                 break
 
         if len(new_frames) > 0 and previous_student_number is not None and previous_student_number not in relevant_frames:
-            relevant_frames[previous_student_number] = get_best_frame(new_frames)
+            best_frame = get_best_frame(new_frames)
+            relevant_frames[previous_student_number] = best_frame
+            cv2.imwrite(f"corpus/{previous_student_number}-coverpage.png", best_frame)
 
         cap.release()
         cv2.destroyAllWindows()
@@ -147,7 +151,7 @@ def extract_frames_interactively(video_path: str):
 
 
 @log_execution_time
-def extract_frames(video_path: str) -> Dict[int, np.array]:
+def extract_frames(video_path: str) -> Dict[str, np.array]:
     """
     reads each frame in the video and considers all frames where a student number (numeric) qr code is found and at least three aruco markers are detected
 
@@ -184,13 +188,17 @@ def extract_frames(video_path: str) -> Dict[int, np.array]:
                 # for debugging purposes: save all frames
                 # relevant_frames[student_number * 100_000 + frame_number] = frame
                 if previous_student_number != student_number and previous_student_number is not None:
-                    relevant_frames[previous_student_number] = get_best_frame(new_frames)
+                    best_frame = get_best_frame(new_frames)
+                    relevant_frames[previous_student_number] = best_frame
+                    cv2.imwrite(f"corpus/{previous_student_number}-coverpage.png", best_frame)
                     new_frames = []
                 previous_student_number = student_number
                 new_frames.append((frame, number_of_arucos))
 
     if len(new_frames) > 0 and previous_student_number is not None and previous_student_number not in relevant_frames:
-        relevant_frames[previous_student_number] = get_best_frame(new_frames)
+        best_frame = get_best_frame(new_frames)
+        relevant_frames[previous_student_number] = best_frame
+        cv2.imwrite(f"corpus/{previous_student_number}-coverpage.png", best_frame)
 
     cap.release()
 
