@@ -82,12 +82,15 @@ We will (todo) provide a LaTeX template for the cover page.
 
 ### Running the tool
 
-You need a video file with the exam cover pages.
+You need a video file with the exam cover pages, or a connected video camera.
 
 Run
 ```
 python detect_points.py test/resources/VID_20240923_102406.mp4 /tmp/points.xlsx 9,7,13,12,4,7,12,26
 ```
+
+Several video file formats are supported.
+Use an integer as file path to select the 0th, 1st etc. camera.
 
 The tool will:
 1. Look for all video frames with a qr code and all aruco markers.
