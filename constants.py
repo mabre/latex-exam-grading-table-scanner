@@ -12,3 +12,7 @@ STUDENT_ID_HEADER = "Klnr." # this should match the key in the qr code if json i
 EXERCISE_HEADER_PREFIX = "A"
 SUM_RECOGNIZED_HEADER = "Σ (erkannt)"
 SUM_WORKSHEET_HEADER = "Σ (von Worksheet berechnet)"
+
+MAX_POINTS_CELL_CANDIDATES = 5
+MIN_POINTS_CELL_PPRODUCT = 0.1
+PREFER_MATCHING_SUM = True

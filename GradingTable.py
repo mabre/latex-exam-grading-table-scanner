@@ -12,7 +12,8 @@ from tensorflow.keras.models import load_model
 
 from WorksheetFunctions import column_index_by_title, column_letter_by_title, write_image_to_cell
 from constants import DIGIT_IMAGE_SIZE, ALLOWED_DIGITS_TENTHS, STUDENT_ID_HEADER, EXERCISE_HEADER_PREFIX, \
-    SUM_RECOGNIZED_HEADER, SUM_WORKSHEET_HEADER
+    SUM_RECOGNIZED_HEADER, SUM_WORKSHEET_HEADER, MAX_POINTS_CELL_CANDIDATES, PREFER_MATCHING_SUM, \
+    MIN_POINTS_CELL_PPRODUCT
 from log_setup import logger
 from training.train_model import preprocess_image
 
@@ -118,29 +119,30 @@ class PointsCell:
                 number += digit
             return number / 10
 
-        def get_combinations_with_probabilities(dict_list: List[Dict[int, float]]) -> List[Tuple[List[int], float]]:
+        def get_combinations_with_probabilities(dict_list: List[Dict[int, float]]) -> List[Tuple[float, float]]:
             keys_combinations = list(product(*[list(d.keys()) for d in dict_list]))
 
             combinations_with_probabilities = []
 
             for combination in keys_combinations:
-                if build_number(combination) > self.max_value:
+                built_number = build_number(combination)
+                if built_number > self.max_value:
                     continue
 
                 probability = 1
                 for idx, key in enumerate(combination):
                     probability *= dict_list[idx][key]
-                combinations_with_probabilities.append((list(combination), probability))
+                combinations_with_probabilities.append((built_number, probability))
 
-            return sorted(combinations_with_probabilities, key=lambda ns_p: ns_p[1], reverse=True) # todo switch to disable, e.g. set [:1]
+            return sorted(combinations_with_probabilities, key=lambda ns_p: ns_p[1], reverse=True)
 
         detection_results = [cell.detect_number(self.use_secondary()) for cell in self.digit_cells]
 
         probabilities = get_combinations_with_probabilities(detection_results)
-        result = [(build_number(digits), p) for digits, p in probabilities if p > 0.1][:5]
+        result = [(number, p) for number, p in probabilities if p > MIN_POINTS_CELL_PPRODUCT][:MAX_POINTS_CELL_CANDIDATES]
         if len(result) == 0:
             logger.debug(f"no good combination found, using best guess {probabilities}")
-            return [(build_number(probabilities[0][0]), probabilities[0][1])]
+            return [probabilities[0]]
         return result
 
 
@@ -214,9 +216,10 @@ class GradingTable:
                 [exercise_grade.detect_number() for exercise_grade in self.points_cells + [self.sum]])
             matching_detection_results = [(grades, p) for grades, p in detection_results if sum(grades[:-1]) == grades[-1]]
             # todo evaluate how often this actually improves the results or just makes the results look better (b/c of sum matching more often)
-            if len(matching_detection_results) > 0:
+            if PREFER_MATCHING_SUM and len(matching_detection_results) > 0:
                 return matching_detection_results[0][0]
-            logger.debug(f"Sum not matching for {self.student_number}, detected candidates: {detection_results}")
+            if len(matching_detection_results) == 0:
+                logger.debug(f"Sum not matching for {self.student_number}, detected candidates: {detection_results}")
             return detection_results[0][0]
 
         prediction = best_result()
