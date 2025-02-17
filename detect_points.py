@@ -443,7 +443,7 @@ def detect_points(cover_pages: Dict[int, np.array], achievable_points: list[int]
     with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = [executor.submit(process_cover_page, student_number, image) for student_number, image in cover_pages.items()]
 
-        for future in tqdm(concurrent.futures.as_completed(futures), desc="Detecting points"):
+        for future in tqdm(concurrent.futures.as_completed(futures), total=len(futures), desc="Detecting points"):
             grading_tables.append(future.result())
 
     return sorted(grading_tables, key=lambda eg: eg.student_number)
