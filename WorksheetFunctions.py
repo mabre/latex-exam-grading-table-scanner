@@ -15,12 +15,13 @@ def write_image_to_cell(ws: Worksheet, image_array: np.array, row: int, col: int
         img = Image(tmp_file.name)
 
     old_height = img.height
-    img.height = 20
-    img.width = int(img.width * (20 / old_height))
+    img.height = 25
+    img.width = int(img.width * (img.height / old_height))
 
     cell_address = get_column_letter(col) + str(row)
 
     ws.add_image(img, cell_address)
+    ws.row_dimensions[row].height = img.height * 4 / 5 # I don't know why the units are different
 
 
 def column_index_by_title(ws: Worksheet, column_name: str) -> int:

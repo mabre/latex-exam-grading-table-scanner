@@ -279,6 +279,13 @@ class GradingTable:
         except JSONDecodeError:
             return {STUDENT_ID_HEADER: student_number}
 
+    def header_image(self) -> np.array:
+        return GradingTable._upper_half(self.rgb_image)
+
     @staticmethod
     def _lower_half(rgb_image: np.array) -> np.array:
-        return rgb_image[rgb_image.shape[0] // 2:, :]
+        return rgb_image[rgb_image.shape[0] // 2:]
+
+    @staticmethod
+    def _upper_half(rgb_image: np.array) -> np.array:
+        return rgb_image[:rgb_image.shape[0] // 2]

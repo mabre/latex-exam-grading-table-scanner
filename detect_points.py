@@ -17,6 +17,7 @@ from playsound import playsound
 from tqdm import tqdm
 
 from GradingTable import GradingTable
+from WorksheetFunctions import column_index_by_title, write_image_to_cell
 from constants import EXERCISE_HEADER_PREFIX, STUDENT_ID_HEADER, SUM_RECOGNIZED_HEADER, SUM_WORKSHEET_HEADER, \
     MAX_CAMERA_IMAGE_PREVIEW_SIZE
 from log_setup import logger
@@ -413,8 +414,12 @@ def write_to_xlsx(exams: list[GradingTable], points_xlsx_path: str) -> None:
         if header.startswith(EXERCISE_HEADER_PREFIX):
             ws.column_dimensions[get_column_letter(i)].width = 5
 
+    write_image_to_cell(ws, exams[0].header_image(), 1, column_index_by_title(ws, "Photo"))
+
     for eg in exams:
         eg.write_line(ws)
+
+    ws.freeze_panes = ws["A2"]
 
     if os.path.exists(points_xlsx_path):
         shutil.copy(points_xlsx_path, f"{points_xlsx_path}~")
