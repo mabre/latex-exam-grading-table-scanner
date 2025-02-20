@@ -19,7 +19,7 @@ from tqdm import tqdm
 from GradingTable import GradingTable
 from WorksheetFunctions import column_index_by_title, write_image_to_cell
 from constants import EXERCISE_HEADER_PREFIX, STUDENT_ID_HEADER, SUM_RECOGNIZED_HEADER, SUM_WORKSHEET_HEADER, \
-    MAX_CAMERA_IMAGE_PREVIEW_SIZE
+    MAX_CAMERA_IMAGE_PREVIEW_SIZE, CAMERA_REC_HEIGHT, CAMERA_REC_WIDTH
 from log_setup import logger
 
 ARUCO_TOP_LEFT_ID = 0
@@ -84,6 +84,8 @@ def extract_frames_interactively(video_path: str) -> Dict[str, np.array]:
     new_frames = []
     if video_path.isnumeric():
         cap = cv2.VideoCapture(int(video_path))
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, CAMERA_REC_WIDTH)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, CAMERA_REC_HEIGHT)
     else:
         cap = cv2.VideoCapture(video_path)
     cap.set(cv2.CAP_PROP_BUFFERSIZE, 1) # limit the buffer so that processing a frame too slowly does not cause the video to lag behind; this has no influence if a video file is used
