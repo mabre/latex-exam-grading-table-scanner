@@ -9,19 +9,19 @@ from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.worksheet import Worksheet
 
 
-def write_image_to_cell(ws: Worksheet, image_array: np.array, row: int, col: int):
+def write_image_to_cell_above_text(ws: Worksheet, image_array: np.array, row: int, col: int, colspan: int):
     with tempfile.NamedTemporaryFile(prefix="scantool_", suffix=".png", delete=False) as tmp_file:
         cv2.imwrite(tmp_file.name, image_array)
         img = Image(tmp_file.name)
 
-    old_height = img.height
-    img.height = 25
-    img.width = int(img.width * (img.height / old_height))
+    old_width = img.width
+    img.width = 37 * colspan
+    img.height = int(img.height * (img.width / old_width))
 
     cell_address = get_column_letter(col) + str(row)
 
     ws.add_image(img, cell_address)
-    ws.row_dimensions[row].height = img.height * 4 / 5 # I don't know why the units are different
+    ws.row_dimensions[row].height = img.height * 4 / 5 + 10 # I don't know why the units are different
 
 
 def column_index_by_title(ws: Worksheet, column_name: str) -> int:

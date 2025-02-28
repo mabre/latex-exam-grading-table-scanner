@@ -17,7 +17,7 @@ from playsound import playsound
 from tqdm import tqdm
 
 from GradingTable import GradingTable
-from WorksheetFunctions import column_index_by_title, write_image_to_cell
+from WorksheetFunctions import column_index_by_title, write_image_to_cell_above_text
 from constants import EXERCISE_HEADER_PREFIX, STUDENT_ID_HEADER, SUM_RECOGNIZED_HEADER, SUM_WORKSHEET_HEADER, \
     MAX_CAMERA_IMAGE_PREVIEW_SIZE, CAMERA_REC_HEIGHT, CAMERA_REC_WIDTH
 from log_setup import logger
@@ -415,13 +415,13 @@ def write_to_xlsx(exams: list[GradingTable], points_xlsx_path: str) -> None:
     sum_headers = [SUM_RECOGNIZED_HEADER,
                   SUM_WORKSHEET_HEADER,
                   "Σ==Σ?"]
-    header_line = exams[0].student_data_columns() + exercise_headers + sum_headers + ["Photo"]
+    header_line = exams[0].student_data_columns() + exercise_headers + sum_headers
     for i, header in enumerate(header_line, start=1):
         ws.cell(row=1, column=i, value=header)
-        if header.startswith(EXERCISE_HEADER_PREFIX):
+        if header.startswith(EXERCISE_HEADER_PREFIX) or header.startswith(SUM_RECOGNIZED_HEADER):
             ws.column_dimensions[get_column_letter(i)].width = 5
 
-    write_image_to_cell(ws, exams[0].header_image(), 1, column_index_by_title(ws, "Photo"))
+    write_image_to_cell_above_text(ws, exams[0].header_image(), 1, column_index_by_title(ws, f'{EXERCISE_HEADER_PREFIX}1'), number_of_fields)
 
     for eg in exams:
         eg.write_line(ws)

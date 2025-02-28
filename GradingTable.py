@@ -7,10 +7,11 @@ from typing import List, Dict, Tuple, Any
 
 import cv2
 import numpy as np
+from openpyxl.styles import Alignment
 from openpyxl.worksheet.worksheet import Worksheet
 from tensorflow.keras.models import load_model
 
-from WorksheetFunctions import column_index_by_title, column_letter_by_title, write_image_to_cell
+from WorksheetFunctions import column_index_by_title, column_letter_by_title, write_image_to_cell_above_text
 from constants import DIGIT_IMAGE_SIZE, ALLOWED_DIGITS_TENTHS, STUDENT_ID_HEADER, EXERCISE_HEADER_PREFIX, \
     SUM_RECOGNIZED_HEADER, SUM_WORKSHEET_HEADER, MAX_POINTS_CELL_CANDIDATES, PREFER_MATCHING_SUM, \
     MIN_POINTS_CELL_PPRODUCT
@@ -178,12 +179,12 @@ class GradingTable:
     def _get_cells(self, image: np.array, achievable_points: List[float]):
         height, width, _ = image.shape
         total_cells = number_of_digit_cells(achievable_points) + PADDING_CELLS_LEFT + PADDING_CELLS_RIGHT
-        cell_width = width / total_cells
+        self.cell_width = width / total_cells
 
         slices = []
         for i in range(PADDING_CELLS_LEFT, total_cells - PADDING_CELLS_RIGHT):
-            start_x = int(i * cell_width - CELL_CROP_PADDING * cell_width)
-            end_x = int((i + 1) * cell_width + CELL_CROP_PADDING * cell_width)
+            start_x = int(i * self.cell_width - CELL_CROP_PADDING * self.cell_width)
+            end_x = int((i + 1) * self.cell_width + CELL_CROP_PADDING * self.cell_width)
             slice_img = image[:, start_x:end_x]
             lower_half_slice = slice_img[height // 2:, :]
             # debug_display_image(lower_half_slice)
@@ -267,7 +268,7 @@ class GradingTable:
         sum_matches_formula = f"={column_letter_by_title(ws, SUM_RECOGNIZED_HEADER)}{target_row}={column_letter_by_title(ws, SUM_WORKSHEET_HEADER)}{target_row}"
         ws.cell(row=target_row, column=column_index_by_title(ws, "Σ==Σ?"), value=sum_matches_formula)
 
-        write_image_to_cell(ws, GradingTable._lower_half(self.rgb_image), target_row, column_index_by_title(ws, "Photo"))
+        write_image_to_cell_above_text(ws, self._lower_half_trimmed(), target_row, column_index_by_title(ws, f'{EXERCISE_HEADER_PREFIX}1'), len(exercises_points) + 1)
 
     def student_data_columns(self) -> List[str]:
         return sorted(self.student_data.keys())
@@ -283,12 +284,10 @@ class GradingTable:
             return {STUDENT_ID_HEADER: student_number}
 
     def header_image(self) -> np.array:
-        return GradingTable._upper_half(self.rgb_image)
+        return self._upper_half_trimmed()
 
-    @staticmethod
-    def _lower_half(rgb_image: np.array) -> np.array:
-        return rgb_image[rgb_image.shape[0] // 2:]
+    def _lower_half_trimmed(self) -> np.array:
+        return self.rgb_image[self.rgb_image.shape[0] // 2:, int(self.cell_width * PADDING_CELLS_LEFT):int(self.rgb_image.shape[1] - self.cell_width * PADDING_CELLS_RIGHT)]
 
-    @staticmethod
-    def _upper_half(rgb_image: np.array) -> np.array:
-        return rgb_image[:rgb_image.shape[0] // 2]
+    def _upper_half_trimmed(self) -> np.array:
+        return self.rgb_image[:self.rgb_image.shape[0] // 2, int(self.cell_width * PADDING_CELLS_LEFT):int(self.rgb_image.shape[1] - self.cell_width * PADDING_CELLS_RIGHT)]
