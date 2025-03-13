@@ -9,6 +9,7 @@ import numpy as np
 import tensorflow as tf
 from keras.api.callbacks import ModelCheckpoint
 from keras.api.models import Sequential
+from keras.src.layers import Conv2D, MaxPooling2D, BatchNormalization, Flatten, Dense, Dropout
 from sklearn.model_selection import train_test_split
 from keras import layers, models
 from tqdm import tqdm
@@ -129,18 +130,28 @@ def generate_datasets(train_images: np.array, train_labels: np.array, test_image
 
 
 def generate_model() -> Sequential:
-    model = models.Sequential([ # based on lenet, with dropout
-        layers.Conv2D(32, (3, 3), activation='relu', input_shape=(DIGIT_IMAGE_SIZE, DIGIT_IMAGE_SIZE, 1)),
-        layers.MaxPooling2D((2, 2)),
-        layers.Dropout(0.25),
-        layers.Conv2D(64, (3, 3), activation='relu'),
-        layers.MaxPooling2D((2, 2)),
-        layers.Dropout(0.25),
-        layers.Flatten(),
-        layers.Dense(128, activation='relu'),
-        layers.Dropout(0.5),
-        layers.Dense(10, activation='softmax')
-    ])
+    model = Sequential() # based on lenet
+    model.add(
+        Conv2D(
+            filters=32,
+            kernel_size=(3, 3),
+            activation="relu",
+            input_shape=(DIGIT_IMAGE_SIZE, DIGIT_IMAGE_SIZE, 1),
+        )
+    )
+    model.add(MaxPooling2D(pool_size=(2, 2)))
+    model.add(BatchNormalization())
+    model.add(Dropout(0.1))
+    model.add(Conv2D(filters=64, kernel_size=(3, 3), activation="relu"))
+    model.add(MaxPooling2D(pool_size=(2, 2)))
+    model.add(BatchNormalization())
+    model.add(Dropout(0.1))
+    model.add(Flatten())
+    model.add(Dense(128, activation="relu"))
+    model.add(BatchNormalization())
+    model.add(Dropout(0.1))
+    model.add(Dense(10, activation="softmax"))
+
     model.compile(
         optimizer=tf.keras.optimizers.Adam(
             learning_rate=3e-5,
@@ -172,7 +183,7 @@ def main(real_data_path: Path, augmented_data_path: Path):
         checkpoint_path, monitor="val_loss", save_best_only=True, mode="min", verbose=1
     )
     _history = model.fit(
-        train_dataset, epochs=5, validation_data=val_dataset, callbacks=[checkpoint], steps_per_epoch=num_train_steps,
+        train_dataset, epochs=10, validation_data=val_dataset, callbacks=[checkpoint], steps_per_epoch=num_train_steps,
         validation_steps=num_val_steps
     )
 
