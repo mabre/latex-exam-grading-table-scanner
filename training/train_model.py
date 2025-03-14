@@ -191,7 +191,7 @@ def main(real_data_path: Path, augmented_data_path: Path):
         checkpoint_path, monitor="val_loss", save_best_only=True, mode="min", verbose=1
     )
     _history = model.fit(
-        train_dataset, epochs=10, validation_data=val_dataset, callbacks=[checkpoint], steps_per_epoch=num_train_steps,
+        train_dataset, epochs=6, validation_data=val_dataset, callbacks=[checkpoint], steps_per_epoch=num_train_steps,
         validation_steps=num_val_steps
     )
 
