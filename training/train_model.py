@@ -130,28 +130,36 @@ def generate_datasets(train_images: np.array, train_labels: np.array, test_image
 
 
 def generate_model() -> Sequential:
-    model = Sequential() # based on lenet
+    model = Sequential()
     model.add(
         Conv2D(
-            filters=32,
+            filters=64,
             kernel_size=(3, 3),
             activation="relu",
             input_shape=(DIGIT_IMAGE_SIZE, DIGIT_IMAGE_SIZE, 1),
         )
     )
-    model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(BatchNormalization())
-    model.add(Dropout(0.1))
     model.add(Conv2D(filters=64, kernel_size=(3, 3), activation="relu"))
     model.add(MaxPooling2D(pool_size=(2, 2)))
     model.add(BatchNormalization())
     model.add(Dropout(0.1))
-    model.add(Flatten())
-    model.add(Dense(128, activation="relu"))
+    model.add(Conv2D(filters=128, kernel_size=(3, 3), activation="relu"))
+    model.add(Conv2D(filters=128, kernel_size=(3, 3), activation="relu"))
+    model.add(MaxPooling2D(pool_size=(2, 2)))
     model.add(BatchNormalization())
     model.add(Dropout(0.1))
+    model.add(Conv2D(filters=256, kernel_size=(3, 3), activation="relu"))
+    model.add(Conv2D(filters=256, kernel_size=(3, 3), activation="relu"))
+    model.add(MaxPooling2D(pool_size=(2, 2)))
+    model.add(BatchNormalization())
+    model.add(Dropout(0.1))
+    model.add(Conv2D(filters=512, kernel_size=(3, 3), activation="relu"))
+    model.add(MaxPooling2D(pool_size=(2, 2)))
+    model.add(Flatten())
+    model.add(BatchNormalization())
+    model.add(Dense(512, activation="relu"))
+    model.add(Dropout(0.1))
     model.add(Dense(10, activation="softmax"))
-
     model.compile(
         optimizer=tf.keras.optimizers.Adam(
             learning_rate=3e-5,
