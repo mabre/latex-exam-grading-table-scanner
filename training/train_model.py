@@ -48,7 +48,7 @@ def load_train_images_and_labels(dataset_path: Path) -> Tuple[np.ndarray, np.nda
 
     for digit in range(10):
         digit_path = dataset_path / str(digit)
-        for filename in tqdm(os.listdir(digit_path)[:100], desc=f"Loading digit {digit}"):
+        for filename in tqdm(os.listdir(digit_path), desc=f"Loading digit {digit}"):
             if filename.lower().endswith('.png'):
                 image_path = digit_path / filename
                 image = cv2.imread(str(image_path))
