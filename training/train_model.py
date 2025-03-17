@@ -11,13 +11,11 @@ from keras.api.callbacks import ModelCheckpoint
 from keras.api.models import Sequential
 from keras.src.layers import Conv2D, MaxPooling2D, BatchNormalization, Flatten, Dense, Dropout
 from sklearn.model_selection import train_test_split
-from keras import layers, models
 from tqdm import tqdm
 
-from constants import DIGIT_IMAGE_SIZE
+from constants import DIGIT_IMAGE_SIZE, EPOCHS, BATCH_SIZE, TRAIN_AUGMENTATION_COUNT
 from log_setup import logger
-
-BATCH_SIZE = 128
+from training.augmentation import scale_image_with_border, randomly_move_image, randomly_rotate_image, random_erasure
 
 
 def preprocess_image(image: np.array) -> np.array:
@@ -50,7 +48,7 @@ def load_train_images_and_labels(dataset_path: Path) -> Tuple[np.ndarray, np.nda
 
     for digit in range(10):
         digit_path = dataset_path / str(digit)
-        for filename in tqdm(os.listdir(digit_path), desc=f"Loading digit {digit}"):
+        for filename in tqdm(os.listdir(digit_path)[:100], desc=f"Loading digit {digit}"):
             if filename.lower().endswith('.png'):
                 image_path = digit_path / filename
                 image = cv2.imread(str(image_path))
@@ -87,6 +85,24 @@ def merge_balanced(images_real: np.ndarray, labels_real: np.ndarray, images_augm
     return balanced_images, balanced_labels
 
 
+def augment(train_images: np.array, train_labels: np.array) -> Tuple[np.array, np.array]:
+    if TRAIN_AUGMENTATION_COUNT == 0:
+        return train_images, train_labels
+
+    augmented_images = []
+    augmented_labels = []
+    for image, label in zip(train_images, train_labels):
+        for _ in range(TRAIN_AUGMENTATION_COUNT):
+            # based on https://arxiv.org/pdf/2001.09136v4
+            scaled_image = scale_image_with_border(image, min_scale=0.96, max_scale=1.04)
+            moved_image = randomly_move_image(scaled_image)
+            rotated_image = randomly_rotate_image(moved_image)
+            final_image = random_erasure(rotated_image)
+            augmented_images.append(final_image)
+            augmented_labels.append(label)
+    return np.append(train_images, augmented_images, axis=0), np.append(train_labels, augmented_labels, axis=0)
+
+
 def load_data(real_data_path: Path, augmented_data_path: Path) -> Tuple[np.array, np.array, np.array, np.array]:
     try:
         images_real, labels_real = load_train_images_and_labels(real_data_path)
@@ -98,6 +114,7 @@ def load_data(real_data_path: Path, augmented_data_path: Path) -> Tuple[np.array
     train_images, test_images, train_labels, test_labels = train_test_split(
         images, labels, test_size=0.1
     )
+    train_images, train_labels = augment(train_images, train_labels)
     train_images = train_images.reshape(train_images.shape[0], DIGIT_IMAGE_SIZE, DIGIT_IMAGE_SIZE, 1)
     test_images = test_images.reshape(test_images.shape[0], DIGIT_IMAGE_SIZE, DIGIT_IMAGE_SIZE, 1)
     return train_images, train_labels, test_images, test_labels
@@ -191,7 +208,7 @@ def main(real_data_path: Path, augmented_data_path: Path):
         checkpoint_path, monitor="val_loss", save_best_only=True, mode="min", verbose=1
     )
     _history = model.fit(
-        train_dataset, epochs=6, validation_data=val_dataset, callbacks=[checkpoint], steps_per_epoch=num_train_steps,
+        train_dataset, epochs=EPOCHS, validation_data=val_dataset, callbacks=[checkpoint], steps_per_epoch=num_train_steps,
         validation_steps=num_val_steps
     )
 
