@@ -154,6 +154,37 @@ def extract_frames_interactively(video_path: str) -> Dict[str, np.array]:
 
 
 @log_execution_time
+def extract_frames_from_files(path_with_wildcard: str) -> Dict[str, np.array]:
+    """
+    reads each image file (given as wildcard expression like "*-coverpage.png") and considers all files where a student number (numeric) qr code is found and at least three aruco markers are detected
+
+    It is assumed that each students number is unique among all files.
+    """
+    image_files = sorted(Path().glob(path_with_wildcard))
+    relevant_frames = {}
+    frame_number = 0
+
+    for filename in tqdm(image_files, desc="Loading frames"):
+        frame = cv2.imread(str(filename))
+        resized_frame = resize(frame, 2000) # aruco and qr detection seems to have problems with very big resolutions
+
+        result = find_grading_table_and_student_number((frame_number, resized_frame))
+
+        if result:
+            student_number, frame, _frame_number, number_of_arucos = result
+            relevant_frames[student_number] = frame
+        else:
+            logging.warning(f"frame {frame_number} does not contain a valid student number or enough aruco markers; this is usually unexcpected in this mode")
+
+        frame_number += 1
+
+
+    assert frame_number != 0, f"No frames found in video, is the path {path_with_wildcard} correct?"
+
+    return relevant_frames
+
+
+@log_execution_time
 def extract_frames(video_path: str) -> Dict[str, np.array]:
     """
     reads each frame in the video and considers all frames where a student number (numeric) qr code is found and at least three aruco markers are detected
@@ -392,6 +423,8 @@ def debug_draw_aruco_markers(corners, ids, image):
 def points_from_video(video_path: str, points_xlsx_path: str, achievable_points: list[int]) -> None:
     if video_path.isnumeric():
         frames = extract_frames_interactively(video_path)
+    elif "*" in video_path:
+        frames = extract_frames_from_files(video_path)
     else:
         frames = extract_frames(video_path)
 

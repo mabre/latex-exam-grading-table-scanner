@@ -84,15 +84,18 @@ We will (todo) provide a LaTeX template for the cover page.
 
 ### Running the tool
 
-You need a video file with the exam cover pages, or a connected video camera.
-
 Run
 ```
 python detect_points.py test/resources/VID_20240923_102406.mp4 /tmp/points.xlsx 9,7,13,12,4,7,12,26
 ```
 
-Several video file formats are supported.
-Use an integer as file path to select the 0th, 1st etc. camera; use q to stop recording.
+The input file may be one of:
+- an integer as file path to select the 0th, 1st etc. connected video camera; use q to stop recording (interactive mode, recommended)
+  - Set the input resolution in `constants.py` to a resolution supported by your camera.
+- a video file; several video file formats are supported (good if your laptop is not powerful enough to record and process at the same time)
+- a glob pattern like "coverpages*.jpg" with individual files to be recognized (good for evaluating the model)
+  - note that this mode assumes that only one cover page per student number is present
+  - remember that you must escape * in the shell
 
 The tool will:
 1. Look for all video frames with a qr code and all aruco markers.
@@ -106,10 +109,10 @@ After extraction, you should re-check the results in the xlsx file and correct a
 ### Tips for filming
 
 - Make sure there is enough light, e.g. sit underneath a lamp.
-- Use HD resolution (1280×720; higher resolution can actually be worse)
+- Use HD resolution (1280×720; higher resolution can actually be worse). Set the `REC` constants in `constants.py` accordingly.
 - When changing to the next exam, do not put your fingers on the grading table; if this frame is chosen for number detection, you get bad results.
 - We use a IPEVO V4K with OBS for recording.
-- In case the tool crashes while recording a video, the cover pages already scanned are not lost. They are saved in the `corpus/` directory. Use `ffmpeg -framerate 1 -pattern_type glob -i '*-coverpage.png' -c:v libx264 -r 30 -pix_fmt yuv420p coverpages.mp4` to create a video from the images, and then use that video file as input.
+- In case the tool crashes while recording a video, the cover pages already scanned are not lost. They are saved in the `corpus/` directory. You can use `corpus/*-coverpage.png` as input path to process them again. (Remember to escape `*`.)
 
 ## Ubiquitous language
 
