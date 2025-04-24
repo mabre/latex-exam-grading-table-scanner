@@ -111,6 +111,7 @@ After extraction, you should re-check the results in the xlsx file and correct a
 - Make sure there is enough light, e.g. sit underneath a lamp.
 - Use HD resolution (1280×720; higher resolution can actually be worse). Set the `REC` constants in `constants.py` accordingly.
 - When changing to the next exam, do not put your fingers on the grading table; if this frame is chosen for number detection, you get bad results.
+- Make sure that only one exam is within the camera view, i.e. do not have a stack of exams underneath the camera. Otherwise, it could happen that you match the grading table of exam n with the QR code on exam n+1.
 - We use a IPEVO V4K with OBS for recording.
 - In case the tool crashes while recording a video, the cover pages already scanned are not lost. They are saved in the `corpus/` directory. You can use `corpus/*-coverpage.png` as input path to process them again. (Remember to escape `*`.)
 
