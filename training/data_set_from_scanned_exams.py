@@ -18,7 +18,7 @@ def read_points_from_xlsx(xlsx_file_path: Path) -> dict:
     exercise_columns = column_indices_by_title(ws, f"{EXERCISE_HEADER_PREFIX}\\d+$")
 
     for row in ws.iter_rows(min_row=2, values_only=True):
-        student_number = row[student_number_column]
+        student_number = int(row[student_number_column])
         points[student_number] = list(row[min(exercise_columns) - 1:max(exercise_columns) + 1])
     return points
 
@@ -31,6 +31,10 @@ def copy_and_rename_images(images: list[Path], points: dict, base_path: Path):
         student_number = int(parts[0])
         exercise_number = int(parts[1])
         cell_index = int(parts[2])
+        
+        # print(points)
+        print(student_number, student_number in points, points.get(3609024, 0))
+        # return
 
         if student_number in points:
             points_for_exercise = points[student_number][exercise_number - 1]

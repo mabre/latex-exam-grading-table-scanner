@@ -59,25 +59,25 @@ def load_train_images_and_labels(dataset_path: Path) -> Tuple[np.ndarray, np.nda
     return np.array(images), np.array(labels)
 
 
-def merge_balanced(images_real: np.ndarray, labels_real: np.ndarray, images_augmented: np.ndarray, labels_augmented: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-    """takes all real images and augmented images, but removes augmented images so that the dataset is balanced"""
+def merge_balanced(images_real: np.ndarray, labels_real: np.ndarray, images_artificial: np.ndarray, labels_artificial: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    """takes all real images and artificial images, but removes artificial images so that the dataset is balanced"""
     real_labels_counter = Counter(labels_real)
-    imbalanced_class_counts = real_labels_counter + Counter(labels_augmented)
+    imbalanced_class_counts = real_labels_counter + Counter(labels_artificial)
     target_number_per_label = min(imbalanced_class_counts.values())
 
-    needed_augmented_samples = {label: target_number_per_label - real_labels_counter[label] for label in imbalanced_class_counts}
+    needed_artificial_samples = {label: target_number_per_label - real_labels_counter[label] for label in imbalanced_class_counts}
 
     balanced_images = list(images_real)
     balanced_labels = list(labels_real)
 
-    for label, count in needed_augmented_samples.items():
+    for label, count in needed_artificial_samples.items():
         if count >= 0:
-            class_images = images_augmented[labels_augmented == label][:count]
-            class_labels = labels_augmented[labels_augmented == label][:count]
+            class_images = images_artificial[labels_artificial == label][:count]
+            class_labels = labels_artificial[labels_artificial == label][:count]
             balanced_images.extend(class_images)
             balanced_labels.extend(class_labels)
         else:
-            raise ValueError(f"label {label} has {abs(count)} samples too few, imbalanced data set! generate more augmented data!")
+            raise ValueError(f"label {label} has {abs(count)} samples too few, imbalanced data set! generate more artificial data!")
 
     balanced_images = np.array(balanced_images)
     balanced_labels = np.array(balanced_labels)
@@ -103,14 +103,14 @@ def augment(train_images: np.array, train_labels: np.array) -> Tuple[np.array, n
     return np.append(train_images, augmented_images, axis=0), np.append(train_labels, augmented_labels, axis=0)
 
 
-def load_data(real_data_path: Path, augmented_data_path: Path) -> Tuple[np.array, np.array, np.array, np.array]:
+def load_data(real_data_path: Path, artificial_data_path: Path) -> Tuple[np.array, np.array, np.array, np.array]:
     try:
         images_real, labels_real = load_train_images_and_labels(real_data_path)
     except FileNotFoundError:
-        logger.warn(f"[W] No real data found in {real_data_path}, using only augmented data")
+        logger.warn(f"[W] No real data found in {real_data_path}, using only artificial data")
         images_real, labels_real = np.array([]), np.array([])
-    images_augmented, labels_augmented = load_train_images_and_labels(augmented_data_path)
-    images, labels = merge_balanced(images_real, labels_real, images_augmented, labels_augmented)
+    images_artificial, labels_artificial = load_train_images_and_labels(artificial_data_path)
+    images, labels = merge_balanced(images_real, labels_real, images_artificial, labels_artificial)
     train_images, test_images, train_labels, test_labels = train_test_split(
         images, labels, test_size=0.1
     )
@@ -188,14 +188,14 @@ def generate_model() -> Sequential:
     return model
 
 
-def main(real_data_path: Path, augmented_data_path: Path):
+def main(real_data_path: Path, artificial_data_path: Path):
     gpus = tf.config.experimental.list_physical_devices('GPU')
     if gpus:
         logger.info("Training on GPU")
     else:
         logger.info("Training on CPU")
 
-    train_images, train_labels, test_images, test_labels = load_data(real_data_path, augmented_data_path)
+    train_images, train_labels, test_images, test_labels = load_data(real_data_path, artificial_data_path)
     num_train_steps = len(train_images) // BATCH_SIZE
     num_val_steps = len(test_images) // BATCH_SIZE
 
@@ -217,7 +217,7 @@ def main(real_data_path: Path, augmented_data_path: Path):
 
 if __name__ == '__main__':
     if len(sys.argv) != 3:
-        print(f"Usage: {sys.argv[0]} <real_data_path> <augmented_data_path>")
+        print(f"Usage: {sys.argv[0]} <real_data_path> <artificial_data_path>")
         print("<real_data_path> may be an empty directory")
         sys.exit(1)
     main(Path(sys.argv[1]), Path(sys.argv[2]))

@@ -10,7 +10,7 @@ pip install -r requirements.txt
 
 ### Creating a data set
 
-#### Augmented data set
+#### Artifical data set
 
 TODO: check wether the code is still working
 
@@ -20,7 +20,7 @@ But we can create an artificial data set from other handwritten digits. To do so
 1. Download a handwritten digits data set, e.g. [from here](https://github.com/kensanata/numbers/tree/master/UNCATEGORIZED).
 2. Run the following command to create a new data set with random black lines around the digits:
 ```
-PYTHONPATH=.:$PYHTONPATH python training/create_augmented_data_set.py /path/to/UNCATEGORIZED /corpus/UNCATEGORIZED_AUGMENTED
+PYTHONPATH=.:$PYHTONPATH python training/create_artificial_data_set.py /path/to/UNCATEGORIZED /corpus/UNCATEGORIZED_ARTIFICAL
 ```
 
 The random black lines are taken from `resources/empty_frames/`. Those frames are also randomly distorted by the script.
@@ -44,16 +44,16 @@ PYTHONPATH=.:$PYHTONPATH python training/data_set_from_scanned_exams.py points.x
 * `3` is the exercise number (1 indexed); the "exercise" number of the sum cell is the number of the last exercise plus 1
 * `0` is the position of the cell (0 indexed), counting from left to right
 
-The data set will be written to subfolders `0`, `1`, ..., `9` in the input directory. The filenames are changed to timestamps; the reference to the student number is lost for privacy reasons.
+The data set will be written to subfolders `0`, `1`, ..., `9` in the input directory. The filenames may be changed to timestamps so that the reference to the student number is lost for privacy reasons (see code).
 
 ### Training the model
 
-Make sure you have at least the augmented data set. Then run
+Make sure you have at least the artificial data set. Then run
 ```bash
-PYTHONPATH=.:$PYHTONPATH python training/train_model.py corpus/real_data corpus/UNCAT_AUGMENTED
+PYTHONPATH=.:$PYHTONPATH python training/train_model.py corpus/real_data corpus/UNCAT_ARTIFICIAL
 ```
 
-The path corpus/real_data may be empty/non-existent if you only use the augmented data set.
+The path corpus/real_data may be empty/non-existent if you only use the artificial data set.
 
 The model will be saved to `0-10-final.keras`.
 
@@ -109,6 +109,7 @@ After extraction, you should re-check the results in the xlsx file and correct a
 ### Tips for filming
 
 - Make sure there is enough light, e.g. sit underneath a lamp.
+- Make sure that the exams are filmed as straight as possible from above.
 - Use HD resolution (1280×720; higher resolution can actually be worse). Set the `REC` constants in `constants.py` accordingly.
 - When changing to the next exam, do not put your fingers on the grading table; if this frame is chosen for number detection, you get bad results.
 - Make sure that only one exam is within the camera view, i.e. do not have a stack of exams underneath the camera. Otherwise, it could happen that you match the grading table of exam n with the QR code on exam n+1.
