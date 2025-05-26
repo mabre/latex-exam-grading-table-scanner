@@ -144,3 +144,5 @@ The software *detects* which handwritten numbers are written in the points cells
 ## Credits
 
 This project is based on previous work by [Fabian Mersch](https://publications.cs.hhu.de/Mersch2024.html).
+
+When using the dataset in `dataset_paper`, please cite the paper “Automation of Tedious Typing: Automatic Recognition of Handwritten Points on Exam Cover Sheets”.
