@@ -8,6 +8,14 @@ Automatic detection of handwritten grades on (LaTeX) exam cover pages.
 pip install -r requirements.txt
 ```
 
+We recommend setting up a virtual environment for this project:
+
+```
+virtualenv env # do this once
+source env/bin/activate # do this everytime you want to use this software
+pip install -r requirements.txt # do this once
+```
+
 ### Creating a data set
 
 #### Artifical data set
@@ -20,7 +28,7 @@ But we can create an artificial data set from other handwritten digits. To do so
 1. Download a handwritten digits data set, e.g. [from here](https://github.com/kensanata/numbers/tree/master/UNCATEGORIZED).
 2. Run the following command to create a new data set with random black lines around the digits:
 ```
-PYTHONPATH=.:$PYHTONPATH python training/create_artificial_data_set.py /path/to/UNCATEGORIZED /corpus/UNCATEGORIZED_ARTIFICAL
+PYTHONPATH=.:$PYHTONPATH python training/create_artificial_base_data_set.py /path/to/UNCATEGORIZED /corpus/UNCATEGORIZED_ARTIFICAL
 ```
 
 The random black lines are taken from `resources/empty_frames/`. Those frames are also randomly distorted by the script.
@@ -40,7 +48,7 @@ PYTHONPATH=.:$PYHTONPATH python training/data_set_from_scanned_exams.py points.x
 ``` 
 
 `corpus/` is expected to contain images named like `123456_3_0.png`, where
-* `123456` is the student number
+* `123456` is the student number (or whatever id you print on your exams)
 * `3` is the exercise number (1 indexed); the "exercise" number of the sum cell is the number of the last exercise plus 1
 * `0` is the position of the cell (0 indexed), counting from left to right
 
@@ -54,6 +62,7 @@ PYTHONPATH=.:$PYHTONPATH python training/train_model.py corpus/real_data corpus/
 ```
 
 The path corpus/real_data may be empty/non-existent if you only use the artificial data set.
+The dataset with real data mentioned in our paper is saved in `dataset_paper`.
 
 The model will be saved to `0-10-final.keras`.
 
@@ -69,18 +78,16 @@ Make sure you hava a trained model, i.e. a file `0-10-final.keras`.
 
 ### Layout of cover pages
 
-TODO: update for 4 markers
-
 The tool expects the cover pages to look like this:
-- Somewhere is a qr code with the student number or json data; the keys of the json data will be used a column headers.
+- Somewhere is a qr code with the student number (or some other unique identifier) or json data; the keys of the json data will be used as column headers.
 - There is a grading table with handwritten points:
-  - The table is surrounded by aruco markers. The vertical distance to the table must be one cell with. The upper or the lower edge, respectively, must be aligned with the table.
+  - The table is surrounded by four aruco markers. The vertical distance to the table must be one cell with. The upper or the lower edge, respectively, must be aligned with the table.
   - Each point cell is divided into tens, ones, and tenths; the sum cell may have hundreds.
   - If points have to be corrected, the corrected points are written underneath.
 
 ![Example cover page](test/resources/example_cover_page.png)
 
-We will (todo) provide a LaTeX template for the cover page.
+See `latex_template` for an example.
 
 ### Running the tool
 
@@ -93,14 +100,14 @@ The input file may be one of:
 - an integer as file path to select the 0th, 1st etc. connected video camera; use q to stop recording (interactive mode, recommended)
   - Set the input resolution in `constants.py` to a resolution supported by your camera.
 - a video file; several video file formats are supported (good if your laptop is not powerful enough to record and process at the same time)
-- a glob pattern like "coverpages*.jpg" with individual files to be recognized (good for evaluating the model)
+- a glob pattern like "coverpages*.jpg" with individual files to be recognized (handy for evaluating the model)
   - note that this mode assumes that only one cover page per student number is present
   - remember that you must escape * in the shell
 
 The tool will:
 1. Look for all video frames with a qr code and all aruco markers.
 2. If multiple frames for the same student number are found, the tool will select the frame in the middle.
-3. The tool will extract the points from the grading table and write results to a xlsx file. It considers the maximum achievable points (`9,7,13,12,4,7,12,26`) for each cell.
+3. The tool will extract the points from the grading table and write results to a xlsx file. It considers the maximum achievable points (in this example, `9,7,13,12,4,7,12,26`) for each cell.
     * If you allow digits other than 0 and 5 for the tenths cell, you have to change `ALLOWED_DIGITS_TENTHS` in `constants.py`.
 4. All detected cells will also be written to `corpus/` so you can generate your own training data to improve the model.
 
@@ -133,10 +140,6 @@ The exercise cells are 1-indexed from left to right; the sum cell has the index 
 The digit cells within each exercise cell are 0-indexed from left to right.
 
 The software *detects* which handwritten numbers are written in the points cells. It considers the *achievable points*.
-
-## Todos
-
-* include latex example code
 
 ## Credits
 

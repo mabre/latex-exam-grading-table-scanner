@@ -1,0 +1,25 @@
+% !TeX TXS-program:compile = txs:///pdflatex/[--shell-escape]
+\documentclass[11pt,a4paper,twoside]{exam}
+
+\newcommand{\examdate}{May 2025}
+\newcommand{\examtitle}{Exam Title}
+\input{titlemacros}
+
+\begin{document}
+
+\DTLforeach{liste}{\no=No,\lastname=Lastname,\firstname=Firstname,\room=Room,\seat=Seat,\seatindex=Seatindex,\sortindex=Sortindex}{%
+    \input{documentstart}
+    \begin{questions}
+    
+    \begingradingrange{myrange}
+    
+    \include{ex1}
+    
+    \endgradingrange{myrange}
+    
+    \end{questions}
+
+    \input{documentend}
+}% Ende \DTLforeach
+
+\end{document}

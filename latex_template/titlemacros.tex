@@ -1,0 +1,79 @@
+\usepackage{a4,graphicx,hhline,tabularx,lastpage,amsmath,amssymb}
+\usepackage[T1]{fontenc}
+\usepackage{adjustbox}
+\usepackage[utf8]{inputenc}
+\usepackage{minted}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{arydshln}
+\usepackage{todonotes}
+\usepackage{framed}
+\usepackage{tabularx}
+\usepackage{multicol}
+\usepackage{forest}
+\usepackage{ifthen}
+\usepackage{changepage} % for oddpage
+\usepackage{qrcode}
+\usepackage{multirow}
+\usepackage{filecontents}
+\usepackage{xstring}
+\usepackage[binary-units,per-mode=fraction,output-decimal-marker={,}]{siunitx}
+%\lstset{numbers=none, frame=bt, basicstyle=\small, numberstyle=\tiny, numbersep=5pt, captionpos=b, breaklines=false}
+\usepackage{color}
+\colorgrids
+\definecolor{GridColor}{gray}{.4}
+\renewcommand{\labelitemii}{$\circ$}
+\newcommand{\answer}[2][]{\ifprintanswers#2\fi}
+
+\checkboxchar{$\Box$}
+
+%\tracingmacros=1
+
+
+\pointpoints{Points}{Points}
+\hqword{Exercise}
+\hpword{Points}
+
+
+\DeclareUnicodeCharacter{03A3}{$\Sigma$}
+
+\setlength{\parindent}{0mm}
+\addtolength{\parskip}{0.7ex}
+\addtolength{\topmargin}{-1cm}
+\extrafootheight{-1cm}
+\addtolength{\oddsidemargin}{-1cm}
+\addtolength{\evensidemargin}{-1.5cm}
+\addtolength{\textheight}{1.5cm}
+\addtolength{\textwidth}{2.5cm}
+
+\pagestyle{headandfoot}
+
+
+\addpoints
+\qformat{{\large\bf Question \thequestion} \hfill \underline{\hspace{1cm}} / \pointsofquestion{\arabic{question}} \points\rule[-5mm]{0mm}{15mm}}
+\usehorizontalhalf
+\pointsinmargin
+\pointformat{\underline{\hspace{.5cm}}/\themarginpoints}
+
+\usepackage{datatool}
+
+% set to true to get a single, empty exam
+\newif\ifexamempty \examemptyfalse
+% creates empty.tex if it does NOT exist
+\begin{filecontents*}{empty}
+No,Lastname,Firstname,Room,Seat,Seatindex,Sortindex
+number, name, firstname, R,1,999,999
+\end{filecontents*}
+
+\noprintanswers  
+% \printanswers 
+
+\ifprintanswers
+    \DTLloaddb{liste}{empty}
+\else
+    \ifexamempty
+        \DTLloaddb{liste}{empty}
+    \else
+        \DTLloaddb{liste}{students.csv}
+    \fi
+\fi

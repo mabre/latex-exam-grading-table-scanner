@@ -1,0 +1,15 @@
+\ifprintanswers
+    \runningfooter{SOLUTION}{\thepage/\pageref{LastPage}}{SOLUTION}
+\else
+    \firstpageheader{}{}{}
+    \firstpagefooter{}{}{}
+%    \runningheader{}{}{\rotatebox{180}{\textcolor{darkgray}{Exam number \sortindex~ (\seat)}}}
+    \runningfooter{}{\thepage/\pageref{LastPage}}{}
+\fi
+
+% reset counters for each student
+%\setcounter{lstlisting}{0}
+\setcounter{footnote}{0}
+\include{coverpage}
+
+\newpage
