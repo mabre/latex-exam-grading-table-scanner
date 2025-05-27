@@ -20,8 +20,6 @@ pip install -r requirements.txt # do this once
 
 #### Artifical data set
 
-TODO: check wether the code is still working
-
 There is (currently) no large training data set with "handwritten digits which have some random black lines around them".
 But we can create an artificial data set from other handwritten digits. To do so,
 
