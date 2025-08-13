@@ -12,7 +12,7 @@
     \ifnum \numpoints < 100
         \htword{$\Sigma$}
     \else
-        \htword{\hspace{0.5mm}Summe\hspace{0.5mm}} % Sorgt für breiteres Summenfeld
+        \htword{\hspace{0.5mm}Summe\hspace{0.5mm}} % wider sum field
     \fi
     \cellwidth{.8cm}
     
@@ -51,14 +51,13 @@
             \draw[gray, dashed] (last_dashed) -- ++(0,-.73); % last dashed line
             \fi
             % eine Zellbreite ist 0,44
-            \node at ($(first_dashed) + (-0.7, -0.48)$) {\includegraphics{aruco_bottom_left.png}}; % untere rechte Ecke muss bündig mit Tabelle sein, Abstand eine Zellbreite
-            \node at ($(last_dashed) + (0.7, 1.91)$) {\includegraphics{aruco_top_right.png}}; % obere linke Ecke muss bündigt mit Tabelle sein, Abstand eine Zellbreite
-            \node at ($(last_dashed) + (0.7, -0.48)$) {\includegraphics{aruco_bottom_right.png}}; % untere linke Ecke muss bündigt mit Tabelle sein, Abstand eine Zellbreite
-            \node at ($(first_dashed) + (-0.7, 2.42)$) {\includegraphics{aruco_top_left.png}}; % untere rechte Ecke muss bündig mit Tabelle sein, Abstand eine Zellbreite
+            \node at ($(first_dashed) + (-0.7, -0.48)$) {\includegraphics{aruco_bottom_left.png}}; % bottom right corner must be aligned with table, distance one cell width
+            \node at ($(last_dashed) + (0.7, 1.91)$) {\includegraphics{aruco_top_right.png}}; % upper left corner must be aligned with table, distance one cell width
+            \node at ($(last_dashed) + (0.7, -0.48)$) {\includegraphics{aruco_bottom_right.png}}; % bottom left corner must be aligned with table, distance one cell width
+            \node at ($(first_dashed) + (-0.7, 2.39)$) {\includegraphics{aruco_top_left.png}}; % bottom right corner must be aligned with table, distance one cell width
         \end{tikzpicture}
     }
-    \setcounter{numquestions}{0} % wg. Serienbrief
-    % NB: Hier gibts ein »Dimension too large.«, falls im vorherigen Compilerdurchgang numquestions exporbitant hoch geworden ist (das passiert, falls man dummerweise die Lösung als Serienbrief erstellt, dann wir der Reset in der vorherigen Zeile nämlich nicht ausgeführt; mit der aktuellen Makrodefinition sollte das aber nicht mehr passieren).
+    \setcounter{numquestions}{0} % for personalized exams
     \partialgradetable{myrange}[h][questions]
-    \setcounter{numpoints}{0} % nicht sicher, das das ein kluger Hack ist; benötigt für saubere Breite in Summenspalte bei Serienbrief
+    \setcounter{numpoints}{0} % hack; needed for correct width of sum if exams are personalized
 \end{center}
