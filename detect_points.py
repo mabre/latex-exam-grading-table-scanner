@@ -284,12 +284,12 @@ def read_qr_code(image: np.array) -> Tuple[Optional[str], Optional[np.array]]:
     ## alternative: barcode number
     decoded = decode(image)
     # Wir verwenden UPC-8 Codes derzeit
-    if decoded:
-        for result in decoded:
-            if result.type != 'QRCODE':
-                barcode_text = result.data.decode("utf-8")
-                if type(barcode_text) is str and len(barcode_text) == 13:
-                    return barcode_text[0:7], np.array([result.polygon], dtype=np.float32)
+    # if decoded:
+    #     for result in decoded:
+    #         if result.type != 'QRCODE':
+    #             barcode_text = result.data.decode("utf-8")
+    #             if type(barcode_text) is str and len(barcode_text) == 13:
+    #                 return barcode_text[0:7], np.array([result.polygon], dtype=np.float32)
     ## end alternative
     return "", None
 
