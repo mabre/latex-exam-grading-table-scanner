@@ -15,6 +15,7 @@ import openpyxl
 from openpyxl.utils import get_column_letter
 from playsound import playsound
 from tqdm import tqdm
+from pyzbar.pyzbar import decode
 
 from GradingTable import GradingTable
 from WorksheetFunctions import column_index_by_title, write_image_to_cell_above_text
@@ -69,6 +70,7 @@ def find_grading_table_and_student_number(frame_data: Tuple[int, np.array]) -> O
         if student_number is not None:
             logger.debug(f"Found student number {student_number} and all aruco markers in frame {frame_number}")
             return student_number, frame, frame_number, markers_found
+        return None
     return None
 
 
@@ -265,7 +267,11 @@ def student_number_from_qr_code(image: np.array) -> Tuple[Optional[str], Optiona
         return None, None
 
 
-def read_qr_code(image: np.array) -> Tuple[Any, Optional[np.array]]:
+def read_qr_code(image: np.array) -> Tuple[Optional[str], Optional[np.array]]:
+    """
+    :param image:
+    :return: "", None if no qr code found
+    """
     qr_decoder = cv2.QRCodeDetector()
     data, points, _ = qr_decoder.detectAndDecode(image)
     if points is not None:
@@ -273,7 +279,19 @@ def read_qr_code(image: np.array) -> Tuple[Any, Optional[np.array]]:
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     binary = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
     data, points, _ = qr_decoder.detectAndDecode(binary)
-    return data, points
+    if points is not None:
+        return data, points
+    ## alternative: barcode number
+    decoded = decode(image)
+    # Wir verwenden UPC-8 Codes derzeit
+    if decoded:
+        for result in decoded:
+            if result.type != 'QRCODE':
+                barcode_text = result.data.decode("utf-8")
+                if type(barcode_text) is str and len(barcode_text) == 13:
+                    return barcode_text[0:7], np.array([result.polygon], dtype=np.float32)
+    ## end alternative
+    return "", None
 
 
 def number_of_aruco_markers(image: np.array) -> int:
