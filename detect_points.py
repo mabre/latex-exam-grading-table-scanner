@@ -1,27 +1,26 @@
 import concurrent
 import concurrent.futures
-import logging
 import os
 import shutil
 import sys
 import tempfile
 import time
 from pathlib import Path
-from typing import Optional, Dict, Tuple, Callable, List, Iterable, Any, Union
+from typing import Optional, Dict, Tuple, Callable, List, Iterable
 
 import cv2
 import cv2.aruco as aruco
 import numpy as np
 import openpyxl
 from openpyxl.utils import get_column_letter
-from playsound import playsound
-from tqdm import tqdm
-from pyzbar.pyzbar import decode
 from pdf2image import convert_from_path
+from playsound import playsound
+from pyzbar.pyzbar import decode
+from tqdm import tqdm
 
 from GradingTable import GradingTable
 from WorksheetFunctions import column_index_by_title, write_image_to_cell_above_text
-from constants import EXERCISE_HEADER_PREFIX, STUDENT_ID_HEADER, SUM_RECOGNIZED_HEADER, SUM_WORKSHEET_HEADER, \
+from constants import EXERCISE_HEADER_PREFIX, SUM_RECOGNIZED_HEADER, SUM_WORKSHEET_HEADER, \
     MAX_CAMERA_IMAGE_PREVIEW_SIZE, CAMERA_REC_HEIGHT, CAMERA_REC_WIDTH
 from log_setup import logger
 
@@ -178,8 +177,12 @@ def extract_frames_from_files(path_with_wildcard: str) -> Dict[str, np.array]:
 
         if result:
             student_number, frame, _frame_number, number_of_arucos = result
-            relevant_frames[student_number] = frame
+            if student_number in relevant_frames:
+                logger.warn(f"student number {student_number} is already recorded, ignoring frame {frame_number} ({filename})")
+            else:
+                relevant_frames[student_number] = frame
         else:
+            print(f"frame {frame_number} ({filename}) does not contain a valid student number or enough aruco markers; this is usually unexpected in this mode")
             logger.warning(f"frame {frame_number} ({filename}) does not contain a valid student number or enough aruco markers; this is usually unexpected in this mode")
 
         frame_number += 1
