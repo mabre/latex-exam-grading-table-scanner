@@ -11,6 +11,7 @@ from openpyxl.styles import Alignment
 from openpyxl.worksheet.worksheet import Worksheet
 from tensorflow.keras.models import load_model
 
+import constants
 from WorksheetFunctions import column_index_by_title, column_letter_by_title, write_image_to_cell_above_text
 from constants import DIGIT_IMAGE_SIZE, ALLOWED_DIGITS_TENTHS, STUDENT_ID_HEADER, EXERCISE_HEADER_PREFIX, \
     SUM_RECOGNIZED_HEADER, SUM_WORKSHEET_HEADER, MAX_POINTS_CELL_CANDIDATES, PREFER_MATCHING_SUM, \
@@ -172,6 +173,8 @@ class GradingTable:
 
     @staticmethod
     def _to_black_white(image: np.array) -> np.array:
+        if constants.BLUR:
+            image = cv2.blur(image, (constants.BLUR, constants.BLUR))
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         binary = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
         return cv2.cvtColor(binary, cv2.COLOR_GRAY2RGB)

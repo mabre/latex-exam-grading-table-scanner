@@ -103,6 +103,7 @@ The input file may be one of:
   - note that this mode assumes that only one cover page per student number is present
   - remember that you must escape * in the shell
   - *pdf is also supported; note that only the first page is considered
+  - if you have compression artifacts in your input, consider setting constants.BLUR for better detection performance
 
 The tool will:
 1. Look for all video frames with a qr code and all aruco markers.

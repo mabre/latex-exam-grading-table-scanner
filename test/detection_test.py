@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 
+import constants
 from detect_points import find_grading_table_and_student_number, detect_points, extract_frames, de_skew_and_crop_image, extract_frames_from_files
 
 
@@ -27,6 +28,7 @@ def test_extract_frames_from_video() -> None:
 
 
 def test_extract_frames_from_files() -> None:
+    # this used to work b/c we forget that the qr code detection can detect a position but no data
     assert len(extract_frames_from_files("test/resources/scanned/000-1.png")) == 1 # b/w
     assert len(extract_frames_from_files("test/resources/scanned/001-1.jpg")) == 1 # color
     assert len(extract_frames_from_files("test/resources/scanned/002-1.jpg")) == 1 # color
@@ -34,6 +36,18 @@ def test_extract_frames_from_files() -> None:
     assert len(extract_frames_from_files("test/resources/scanned/002-1b.jpg")) == 1 # color, 100 % compression (relevant!)
     assert len(extract_frames_from_files("test/resources/scanned/003-1.jpg")) == 1 # color
     assert len(extract_frames_from_files("test/resources/scanned/003-1a.jpg")) == 1 # color, 100 % compression
+
+
+def test_detection_scanned_images() -> None:
+    # the contrast is different to camera images
+    constants.BLUR = 10
+    table1 = detect_points({79: cv2.imread("test/resources/scanned/001-1.jpg")}, [7, 6])[0]
+    assert table1.points() == [2.5, 5.5, 8.0]
+    table2 = detect_points({191: cv2.imread("test/resources/scanned/002-1.jpg")}, [7, 6])[0]
+    assert table2.points() == [6.0, 5.0, 11.0]
+    table3 = detect_points({221: cv2.imread("test/resources/scanned/003-1.jpg")}, [7, 6])[0]
+    assert table3.points() == [5.5, 6.0, 11.5]
+
 
 
 def test_rotation() -> None:

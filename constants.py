@@ -23,3 +23,5 @@ PREFER_MATCHING_SUM = True
 BATCH_SIZE = 128
 EPOCHS = 6
 TRAIN_AUGMENTATION_COUNT = 4 # how many augmented training images are added for each real image
+
+BLUR = 0 # set to e.g. 10 to blur jpeg compression artifacts; recommended if you use scanned jpeg images
