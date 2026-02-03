@@ -192,7 +192,7 @@ def extract_frames_from_files(path_with_wildcard: str) -> Dict[str, np.array]:
 
 def read_image(filename: Path) -> np.ndarray:
     if str(filename).endswith(".pdf"):
-        pages = convert_from_path(filename, 300)
+        pages = convert_from_path(filename, dpi=300, first_page=1, last_page=1)
         with tempfile.TemporaryDirectory() as path:
             pages[0].save(f"{path}/out.jpg", 'JPEG')
             return cv2.imread(f"{path}/out.jpg")
