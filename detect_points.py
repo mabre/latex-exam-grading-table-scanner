@@ -4,6 +4,7 @@ import logging
 import os
 import shutil
 import sys
+import tempfile
 import time
 from pathlib import Path
 from typing import Optional, Dict, Tuple, Callable, List, Iterable, Any, Union
@@ -16,6 +17,7 @@ from openpyxl.utils import get_column_letter
 from playsound import playsound
 from tqdm import tqdm
 from pyzbar.pyzbar import decode
+from pdf2image import convert_from_path
 
 from GradingTable import GradingTable
 from WorksheetFunctions import column_index_by_title, write_image_to_cell_above_text
@@ -160,14 +162,16 @@ def extract_frames_from_files(path_with_wildcard: str) -> Dict[str, np.array]:
     """
     reads each image file (given as wildcard expression like "*-coverpage.png") and considers all files where a student number (numeric) qr code is found and at least three aruco markers are detected
 
-    It is assumed that each students number is unique among all files.
+    It is assumed that each student number is unique among all files.
+
+    If pdf files are given, only the first page is extracted.
     """
     image_files = sorted(Path().glob(path_with_wildcard))
     relevant_frames = {}
     frame_number = 0
 
     for filename in tqdm(image_files, desc="Loading frames"):
-        frame = cv2.imread(str(filename))
+        frame = read_image(filename)
         resized_frame = resize(frame, 2000) # aruco and qr detection seems to have problems with very big resolutions
 
         result = find_grading_table_and_student_number((frame_number, resized_frame))
@@ -176,7 +180,7 @@ def extract_frames_from_files(path_with_wildcard: str) -> Dict[str, np.array]:
             student_number, frame, _frame_number, number_of_arucos = result
             relevant_frames[student_number] = frame
         else:
-            logging.warning(f"frame {frame_number} does not contain a valid student number or enough aruco markers; this is usually unexcpected in this mode")
+            logging.warning(f"frame {frame_number} ({filename}) does not contain a valid student number or enough aruco markers; this is usually unexpected in this mode")
 
         frame_number += 1
 
@@ -184,6 +188,15 @@ def extract_frames_from_files(path_with_wildcard: str) -> Dict[str, np.array]:
     assert frame_number != 0, f"No frames found in video, is the path {path_with_wildcard} correct?"
 
     return relevant_frames
+
+
+def read_image(filename: Path) -> np.ndarray:
+    if str(filename).endswith(".pdf"):
+        pages = convert_from_path(filename, 300)
+        with tempfile.TemporaryDirectory() as path:
+            pages[0].save(f"{path}/out.jpg", 'JPEG')
+            return cv2.imread(f"{path}/out.jpg")
+    return cv2.imread(str(filename))
 
 
 @log_execution_time
@@ -283,14 +296,14 @@ def read_qr_code(image: np.array) -> Tuple[Optional[str], Optional[np.array]]:
         return data, points
     ## alternative: barcode number
     decoded = decode(image)
-    # Wir verwenden UPC-8 Codes derzeit
-    # if decoded:
-    #     for result in decoded:
-    #         if result.type != 'QRCODE':
-    #             barcode_text = result.data.decode("utf-8")
-    #             if type(barcode_text) is str and len(barcode_text) == 13:
-    #                 return barcode_text[0:7], np.array([result.polygon], dtype=np.float32)
-    ## end alternative
+    # We're currently using UPC-8 codes
+    if decoded:
+        for result in decoded:
+            if result.type != 'QRCODE':
+                barcode_text = result.data.decode("utf-8")
+                if type(barcode_text) is str and len(barcode_text) == 13:
+                    return barcode_text[0:7], np.array([result.polygon], dtype=np.float32)
+    # end alternative
     return "", None
 
 
@@ -438,7 +451,7 @@ def debug_draw_aruco_markers(corners, ids, image):
     cv2.destroyAllWindows()
 
 
-def points_from_video(video_path: str, points_xlsx_path: str, achievable_points: list[int]) -> None:
+def points_from_input(video_path: str, points_xlsx_path: str, achievable_points: list[int]) -> None:
     if video_path.isnumeric():
         frames = extract_frames_interactively(video_path)
     elif "*" in video_path:
@@ -521,4 +534,4 @@ if __name__ == "__main__":
         print(f"  e.g. foo.mkv /tmp/grades.xlsx 9,14,4,10")
         sys.exit(1)
     # TODO accept input Matrikelnummer liste and write empty lines where no data detected
-    points_from_video(sys.argv[1], sys.argv[2], [int(p) for p in sys.argv[3].split(",")])
+    points_from_input(sys.argv[1], sys.argv[2], [int(p) for p in sys.argv[3].split(",")])

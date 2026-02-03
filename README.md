@@ -101,6 +101,7 @@ The input file may be one of:
 - a glob pattern like "coverpages*.jpg" with individual files to be recognized (handy for evaluating the model)
   - note that this mode assumes that only one cover page per student number is present
   - remember that you must escape * in the shell
+  - *pdf is also supported; note that only the first page is considered
 
 The tool will:
 1. Look for all video frames with a qr code and all aruco markers.
