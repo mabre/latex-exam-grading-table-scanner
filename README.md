@@ -78,6 +78,7 @@ Make sure you hava a trained model, i.e. a file `0-10-final.keras`.
 
 The tool expects the cover pages to look like this:
 - Somewhere is a qr code with the student number (or some other unique identifier) or json data; the keys of the json data will be used as column headers.
+  - As an alternative to a qr code, a UPC-8 barcode can be used. The first 7 digits are treated as student number.
 - There is a grading table with handwritten points:
   - The table is surrounded by four aruco markers. The vertical distance to the table must be one cell with. The upper or the lower edge, respectively, must be aligned with the table.
   - Each point cell is divided into tens, ones, and tenths; the sum cell may have hundreds.

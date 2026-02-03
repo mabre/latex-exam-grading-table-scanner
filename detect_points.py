@@ -67,7 +67,7 @@ def find_grading_table_and_student_number(frame_data: Tuple[int, np.array]) -> O
     # print(frame_number, number_of_aruco_markers(frame))
     markers_found = number_of_aruco_markers(frame)
     if markers_found >= NUM_ARUCO_MARKERS - 1:
-        student_number, _ = student_number_from_qr_code(frame)
+        student_number, _ = student_number_from_code(frame)
         logger.debug(f"Found {markers_found} aruco markers in frame {frame_number}")
         if student_number is not None:
             logger.debug(f"Found student number {student_number} and all aruco markers in frame {frame_number}")
@@ -110,7 +110,7 @@ def extract_frames_interactively(video_path: str) -> Dict[str, np.array]:
             resized_frame = resize(frame, 2000)  # aruco and qr detection seems to have problems with very big resolutions
 
             aruco_corners, aruco_ids = detect_aruco_markers(resized_frame)
-            student_number, qr_corners = student_number_from_qr_code(resized_frame)
+            student_number, qr_corners = student_number_from_code(resized_frame)
 
             color_index = len(aruco_ids) + 1 if qr_corners is not None else -1 # so we get any green only with detected qr code
             color = COLORS[color_index]
@@ -266,8 +266,8 @@ def get_best_frame(frames_with_aruco_count: list[Tuple[np.array, int]]) -> np.ar
     return frames_with_aruco_count[len(frames_with_aruco_count) // 2][0]
 
 
-def student_number_from_qr_code(image: np.array) -> Tuple[Optional[str], Optional[np.array]]:
-    data, points = read_qr_code(image)
+def student_number_from_code(image: np.array) -> Tuple[Optional[str], Optional[np.array]]:
+    data, points = read_code(image)
 
     if points is not None:
         logger.debug(f"QR Code Data: {data}")
@@ -280,21 +280,25 @@ def student_number_from_qr_code(image: np.array) -> Tuple[Optional[str], Optiona
         return None, None
 
 
-def read_qr_code(image: np.array) -> Tuple[Optional[str], Optional[np.array]]:
+def read_code(image: np.array) -> Tuple[Optional[str], Optional[np.array]]:
     """
     :param image:
-    :return: "", None if no qr code found
+    :return: "", None if no qr/UPC-8 code found
     """
     qr_decoder = cv2.QRCodeDetector()
     data, points, _ = qr_decoder.detectAndDecode(image)
-    if points is not None:
+    if points is not None and len(data) > 0:
         return data, points
+    # try again with greyscale image
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     binary = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
     data, points, _ = qr_decoder.detectAndDecode(binary)
-    if points is not None:
+    if points is not None and len(data) > 0:
         return data, points
-    ## alternative: barcode number
+    # alternative: barcode number
+    return read_barcode(image)
+
+def read_barcode(image: np.array) -> Tuple[Optional[str], Optional[np.array]]:
     decoded = decode(image)
     # We're currently using UPC-8 codes
     if decoded:
@@ -303,7 +307,6 @@ def read_qr_code(image: np.array) -> Tuple[Optional[str], Optional[np.array]]:
                 barcode_text = result.data.decode("utf-8")
                 if type(barcode_text) is str and len(barcode_text) == 13:
                     return barcode_text[0:7], np.array([result.polygon], dtype=np.float32)
-    # end alternative
     return "", None
 
 

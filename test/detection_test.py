@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-from detect_points import find_grading_table_and_student_number, detect_points, extract_frames, de_skew_and_crop_image
+from detect_points import find_grading_table_and_student_number, detect_points, extract_frames, de_skew_and_crop_image, extract_frames_from_files
 
 
 def test_find_grading_table_and_student_number() -> None:
@@ -24,6 +24,16 @@ def test_extract_frames_from_video() -> None:
     frames = extract_frames("test/resources/example_video.mkv")
     assert len(frames) == 7
     assert frames.keys() == {10110011, 10130013, 10150015, 10180018, 10190019, 10170017, 10200020}
+
+
+def test_extract_frames_from_files() -> None:
+    assert len(extract_frames_from_files("test/resources/scanned/000-1.png")) == 1 # b/w
+    assert len(extract_frames_from_files("test/resources/scanned/001-1.jpg")) == 1 # color
+    assert len(extract_frames_from_files("test/resources/scanned/002-1.jpg")) == 1 # color
+    assert len(extract_frames_from_files("test/resources/scanned/002-1a.jpg")) == 1 # color
+    assert len(extract_frames_from_files("test/resources/scanned/002-1b.jpg")) == 1 # color, 100 % compression (relevant!)
+    assert len(extract_frames_from_files("test/resources/scanned/003-1.jpg")) == 1 # color
+    assert len(extract_frames_from_files("test/resources/scanned/003-1a.jpg")) == 1 # color, 100 % compression
 
 
 def test_rotation() -> None:
