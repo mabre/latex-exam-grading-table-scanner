@@ -180,7 +180,7 @@ def extract_frames_from_files(path_with_wildcard: str) -> Dict[str, np.array]:
             student_number, frame, _frame_number, number_of_arucos = result
             relevant_frames[student_number] = frame
         else:
-            logging.warning(f"frame {frame_number} ({filename}) does not contain a valid student number or enough aruco markers; this is usually unexpected in this mode")
+            logger.warning(f"frame {frame_number} ({filename}) does not contain a valid student number or enough aruco markers; this is usually unexpected in this mode")
 
         frame_number += 1
 
