@@ -173,7 +173,7 @@ class GradingTable:
 
     @staticmethod
     def _to_black_white(image: np.array) -> np.array:
-        if constants.BLUR:
+        if constants.BLUR > 0:
             image = cv2.blur(image, (constants.BLUR, constants.BLUR))
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         binary = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
